@@ -1,0 +1,15 @@
+\section{Control}
+\subsection{Approach}
+Once the outputs of the Kalman filter based perception model are received, we need a way to use these outputs to drive our system to the desired task space. To do this we will implement an adaptive control method, whose input will be dependent on our state variables. We can then rewrite Eq. \ref{eom-manipulator} as
+\begin{equation}
+	M(q)\ddot{q} + C(q,\dot{q})\dot{q} + G(q) = \tau(q,\dot{q})
+	\label{eq:adaptContr}
+\end{equation}
+Using this model, we will need to form a valid Lyapunov equation which drives the error between our current state and desired state, $\tilde{q} = q - q_{d}$, to zero. The Lyapunov candidate of choice will be of the form
+\begin{equation}
+	V(q) = \frac{1}{2}\dot{q}^{T}M(q)\dot{q} + \frac{1}{2}\tilde{q}^{T}K(q)s\tilde{q}
+	\label{eq:lyapcand}
+\end{equation}
+Where $K(q)\in\mathbb{R}^{n\times n}$ are the controller gains. We can then select these gains to satisfy Lyapunov Stability criteria, such that we enforce convergence even as the mass matrix continues to evolve.\\
+
+One the controller gains have been determined, the outputs of this control are then passed back into the learning model in order to re-estimate $M(q)$, at which point the cycle is repeated.
