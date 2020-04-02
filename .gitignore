@@ -1,0 +1,5 @@
+# LaTeX files
+*.pdf
+*.log
+*.aux
+*.auctex-auto
