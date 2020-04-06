@@ -1,5 +1,5 @@
 \section{Robotic Modeling}
-\subsection{Background Information and Problem Statement}
+\subsection{Approach}
 
 The general equation of motion for a robotic manipulator can be expressed as:
 
@@ -14,30 +14,13 @@ $G(q)\in\mathbb{R}^{n}$ is the conservative force vector acted on the arm by
 gravity, and $\tau\in\mathbb{R}^{n}$ are the torques commanded to each joint.
 Each of the terms on the left hand side of the equation can be directly modeled
 when the manipulator joint information is known.
-
-However, when this information is not known, these values cannot be calculated
-without expensive measurement devices and manual human intervention. Any changes
-to the physical design of the manipulator will again require these steps,
-leading to a very inefficient method for manipulation of the robot. This becomes
-problematic in situations where this information is not readily known due to
-manufacturer limitations in available information, or even when as-built
-configurations are loosely correlated to the as-designed tolerances, such as 3D
-printed manipulators.
-
-\subsection{Proposed Solution}
-In order to avoid this problem, a function approximator can be used to estimate
-the mass matrix, Coriolis matrix, and the conservative force vector.
-One popular function approximator is a neural network, which combines linear and
-non-linear transformations in order to capture the non-linearities of a given
-relationship between input and output.
-In order to model a function with a neural network, a loss function for each
-neural network must be formulated in order for the gradient descent algorithms
-to work properly.
+However, when this information is not available, a neural network can be used to
+estimate the value of these matrices.
 
 To model the conservative force vector, a robotic manipulator can be controlled
 with a simple PD controller and brought to a stop at a given configuration value
 $q$.
-When the manipulator is at rest, equation (\ref{eom-manipulator}) simplifies to:
+When the manipulator is at rest, Eq. (\ref{eom-manipulator}) simplifies to:
 
 \begin{align}
   \label{eom-manipulator-stopped}
@@ -74,7 +57,7 @@ must exist, and the equation can then be expressed as:
 The problem with this method is that the Coriolis term is still in place, and we
 have no estimate for this value.
 However, if we take our $\ddot{q}$ samples at the initial point when we first
-begin accelerating, we should see that $\dot{q} \approx 0$, and thus equation
+begin accelerating, we should see that $\dot{q} \approx 0$, and thus Eq.
 (\ref{eom-manipulator-accel-m}) can be expressed as:
 
 \begin{align}
@@ -100,4 +83,4 @@ The frictional case will be further broken down into two sections.
 The first will consist of learning the two maps without static friction
 compensation, and the second will include static friction compensation.
 Static friction will be modeled as a constant $\mu_{s}$, so this can easily be
-added into the above formulations (primarily for the acceleration case).
+added into the above formulations (primarily for the mass matrix case).
