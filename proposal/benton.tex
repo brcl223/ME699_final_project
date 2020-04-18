@@ -49,10 +49,13 @@ must exist, and the equation can then be expressed as:
 
 \begin{align}
   \label{eom-manipulator-accel}
-  M(q)\ddot{Q} + C(q,\dot{Q})\dot{Q} + G(q) &= \tau\\
+  M(q)\ddot{Q} + C(q,\dot{Q})\dot{Q} + G(Q) &= \mathrm{T}\\
   \label{eom-manipulator-accel-m}
-  M(q) &= \ddot{Q}^{-1}(\tau - G(q) - C(q,\dot{Q})\dot{Q})
+  M(q) &= \ddot{Q}^{-1}(\mathrm{T} - G(Q) - C(q,\dot{Q})\dot{Q})
 \end{align}
+
+\noindent where $G(Q)\in\mathbb{R}^{n\times n}$ is a one dimensional matrix
+where each column satisfies $G_{i}(Q) = G(q)$.
 
 The problem with this method is that the Coriolis term is still in place, and we
 have no estimate for this value.
@@ -61,7 +64,7 @@ begin accelerating, we should see that $\dot{q} \approx 0$, and thus Eq.
 (\ref{eom-manipulator-accel-m}) can be expressed as:
 
 \begin{align}
-  M(q) = \ddot{Q}^{-1}(\tau - G(q))
+  M(q) = \ddot{Q}^{-1}(\mathrm{T} - G(Q))
 \end{align}
 
 \noindent which now allows for a loss function to be formulated.

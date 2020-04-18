@@ -1,6 +1,21 @@
-\section{Perception}
+\section{Perception and Planning}
 \subsection{Uncertainty in Configurations}
-After developing the model of mass approximation, the entirety of the robot model URDF will be created. The robot configuration $q_1$, $q_2$, ..., $q_n$ determines how the robot will interact with the task space with the end-effector.  Assuming that the end-effector has a camera on its end and can understand its surroundings, the perception through said camera will be used to achieve motion and interaction with an object in the task space.  A combination of RRT path planning algorithm, Kalman filtering, and Forward/Inverse kinematics will lead to the configuration that the robot is in to have the end-effector reach the object.  An object with some mass $M_o$ will be placed in the task space.  The robot's purpose is to move to the object, pick it up, and move it to a desired position.
+The robot configuration $q_1$, $q_2$, ..., $q_n$ determines how the robot will
+interact with the task space and the end-effector.
+Assuming that the end-effector has a camera on its end and can understand its
+surroundings, the perception through said camera will be used to achieve motion
+and interaction with an object in the task space.
+A combination of the RRT path planning algorithm, Kalman filtering, and
+Forward/Inverse kinematics will lead to the configuration that the robot is in
+to have the end-effector reach the object.
+An object with some mass $M_o$ will be placed in the task space.
+The robot's purpose is to move to the object, pick it up, and move it to a
+desired position.
 
 \subsection{Approach}
-The end-effector perception problem requires many disciplines of robotics.  First, a landmark based Kalman filter will be applied to the robot.  This will test our ability to move to the object.  Then, applying kinematic theory, the configuration of the robot to achieve the end-effector location and orientation corresponding to the object will be achieved.
+The end-effector perception problem requires many disciplines of robotics.
+First, a landmark based Kalman filter will be applied to the robot.
+This will test our ability to move to the object.
+Then, applying kinematic theory, the configuration of the robot to achieve the
+end-effector location and orientation corresponding to the object will be
+achieved.
