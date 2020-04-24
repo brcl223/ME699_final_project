@@ -1,20 +1,11 @@
 using Flux, CuArrays
 using JLD
 using IterTools: ncycle
-using BSON: @save
 
 using Flux.Data, Flux.Optimise
 
-const LAYER_SIZE = 100
-
-function build_nn(in, out)
-    return Chain(
-        Dense(in, LAYER_SIZE, relu),
-        Dense(LAYER_SIZE, LAYER_SIZE, relu),
-        Dense(LAYER_SIZE, LAYER_SIZE, relu),
-        Dense(LAYER_SIZE, out),
-    )
-end
+include("utils/nn.jl")
+using NN
 
 function main()
     nn = build_nn(3, 3) |> gpu
@@ -33,11 +24,7 @@ function main()
     evalcb() = @show(loss(val_qpos, val_taus))
 
     train!(loss, ps, ncycle(train_loader, 20), opt, cb=evalcb)
-
-    # Models saved while on GPU may not load correctly
-    # Make sure to save while on CPU
-    nn = cpu(nn)
-    @save "./models/gravity_nn.bson" nn
+    save_nn(nn, "./models/gravity_nn")
 end
 
 main()

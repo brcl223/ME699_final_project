@@ -30,3 +30,8 @@ function to_euler_angles(q::Quaternion)
 
     return EulerAngles(roll, pitch, yaw)
 end
+
+function bound_2pi(v::AbstractVector)
+    bound = floor.(v ./ (2*pi))
+    return v .- 2*pi .* bound
+end

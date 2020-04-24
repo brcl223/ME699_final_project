@@ -71,7 +71,7 @@ ixy="0" ixz="0" iyz="0" />
   <joint name="joint A" type="continuous">
     <parent link="link A" />
     <child link="link B" />
-    <origin xyz="0 0 -0.05" />
+    <origin xyz="0 0 0" />
     <axis xyz="0 1 0" />
   </joint>
   <joint name="joint B" type="continuous">
