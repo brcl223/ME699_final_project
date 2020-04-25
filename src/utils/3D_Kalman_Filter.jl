@@ -26,7 +26,7 @@ function linearizePointModel(xTrue,Rvm,Rwm,yk,lmarks)
     Rw[1:3,1:3,1:3] = Rwm
     Rv[1:3,1:3,1:3] = Rvm
 
-    C=[-1 0 0 1 0 0, 0 -1 0 0 1 0, 0 0 -1 0 0 1];
+    C=[-1 0 0 1 0 0; 0 -1 0 0 1 0; 0 0 -1 0 0 1];
     mysys = LTIsys(A,B,C,Rw,Rv)
     return mysys
 end
