@@ -1,9 +1,3 @@
-module RRT
-
-using LinearAlgebra
-
-export rrt_star
-
 const MAX_NODES = 10000
 
 gen_rand_q() = (rand(3) .- 0.5) .* (4*pi)
@@ -40,12 +34,54 @@ function is_valid_configuration(q::AbstractArray)::Bool
     return true
 end
 
+function check_collisions(w::World,
+                          lower::RoboCylinder,
+                          upper::RoboCylinder,
+                          qi::AbstractVector,
+                          qf::AbstractVector;
+                          steps = 10.)
+    d = norm(qf - qi)
+    Δd = d / steps
+    for i = 0:steps
+        q_cur = qi + i * Δd * (qf - qi)
+        if check_collisions(w, lower, q_cur) || check_collisions(w, upper, q_cur)
+            return true
+        end
+    end
+
+    return false
+end
+
+# TODO: Allow for wrapping around -2pi to 2pi
 function rrt_star(initial::AbstractArray,
-                  final::AbstractArray;
+                  final::AbstractArray,
+                  state::MechanismState,
+                  w::World;
                   ϵ=0.5,
                   rewire_range=1)
     q_init = copy(initial)
     q_final = copy(final)
+
+    # First construct our collisions for the joints
+    cyl_bottom = SVector(0., 0., 0.)
+    cyl_top = SVector(0., 0., -1.)
+    r = 0.05
+
+    lower_cyl = RoboCylinder(cyl_bottom, cyl_top, r, state, "link_lower_arm")
+    upper_cyl = RoboCylinder(cyl_bottom, cyl_top, r, state, "link_upper_arm")
+
+    # First check our start and end states to make sure they're valid
+    if check_collisions(w, lower_cyl, q_init) ||
+        check_collisions(w, upper_cyl, q_init)
+        println("Error! Starting configuration is invalid due to collision")
+        return nothing
+    end
+
+    if check_collisions(w, lower_cyl, q_final) ||
+        check_collisions(w, upper_cyl, q_final)
+        println("Error: Final configuration is invalid due to collision")
+        return nothing
+    end
 
     nodes = Node[]
 
@@ -62,6 +98,13 @@ function rrt_star(initial::AbstractArray,
         if norm(nodes[end].q - q_final) <= ϵ
             push!(nodes, Node(q_final, nodes[end].cost, length(nodes)))
             break
+        end
+
+        # If we are at the last iteration and we did not find a node to connect
+        # to, then kill the process as it is an invalid path
+        if i == MAX_NODES
+            println("Error: No solution found in given nodes $MAX_NODES")
+            return nothing
         end
 
         q_rand = gen_rand_q()
@@ -82,7 +125,8 @@ function rrt_star(initial::AbstractArray,
         q_new = steer(q_rand, node_near.q, dist, ϵ)
 
         # Check for collision here. If collision continue
-        if !is_valid_configuration(q_new)
+        if !is_valid_configuration(q_new) ||
+            check_collisions(w, lower_cyl, upper_cyl, node_near.q, q_new)
             continue
         end
 
@@ -94,6 +138,9 @@ function rrt_star(initial::AbstractArray,
         idx_min = idx
         for (i, node) in enumerate(nodes)
             # Check collision
+            if check_collisions(w, lower_cyl, upper_cyl, node.q, q_new)
+                continue
+            end
             cur_dist = norm(node.q - q_new)
             cur_cost = cur_dist + node.cost
             if cur_dist <= rewire_range &&
@@ -121,6 +168,4 @@ function rrt_star(initial::AbstractArray,
     # Now reverse the order
     reverse!(path)
     return path
-end
-
 end

@@ -1,9 +1,3 @@
-module Kinematics
-
-using RigidBodyDynamics
-
-export jacobian_transpose_ik, jacobian_transpose_ik!
-
 function jacobian_transpose_ik!(state::MechanismState,
                                body::RigidBody,
                                point::Point3D,
@@ -42,6 +36,4 @@ function jacobian_transpose_ik(state::MechanismState,
                                iterations=100)
     state = copy(state)
     return jacobian_transpose_ik!(state, body, point, desired; α=α, iterations=iterations)
-end
-
 end

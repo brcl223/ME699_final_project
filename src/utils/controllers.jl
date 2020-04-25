@@ -1,12 +1,5 @@
-module Controllers
-
 using Flux
 using RigidBodyDynamics
-
-include("./nn.jl")
-using .NN
-
-export PDController, PDGCController
 
 function gen_rand_pi(dim)
     return 2*pi .* rand(dim)
@@ -38,6 +31,4 @@ PDGCController(dim::Integer) = PDGCController(dim, gen_rand_pi(dim))
 function (pd::PDGCController)(τ::AbstractVector, t, state::MechanismState)
     qcur = configuration(state)
     τ .= -30 .* velocity(state) - 100 * (qcur - pd.qd) + pd.nn(qcur)
-end
-
 end

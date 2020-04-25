@@ -1,28 +1,3 @@
-module Collisions
-
-using Random
-using LinearAlgebra
-using ConvexBodyProximityQueries
-using LazySets
-using StaticArrays
-using RigidBodyDynamics
-using MeshCat
-using GeometryTypes: Point
-using CoordinateTransformations
-
-const CT = CoordinateTransformations
-const LS = LazySets
-
-export Cylinder,
-    RoboCylinder,
-    World,
-    add_object!,
-    get_graphics,
-    check_collisions,
-    graphics_transform,
-    collision_transform,
-    apply_transform
-
 to_affine_map(tform::Transform3D) = CT.AffineMap(rotation(tform), translation(tform))
 to_affine_map(tform::Transform3D, X::LazySet{N}) where N = LS.AffineMap(rotation(tform), X, translation(tform))
 to_affine_map(trans::AbstractVector, X::LazySet{N}) where N = LS.AffineMap(I, X, trans)
@@ -153,7 +128,4 @@ end
 
 mutable struct Sphere{N}
     P::LazySet{N}
-end
-
-
 end
