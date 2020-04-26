@@ -16,6 +16,7 @@ const CT = CoordinateTransformations
 const LS = LazySets
 const RBD = RigidBodyDynamics
 
+# Must be included before RRT
 include("collisions.jl")
 export Cylinder,
     RoboCylinder,
@@ -28,10 +29,9 @@ export Cylinder,
     apply_transform
 
 include("controllers.jl")
-export PDController, PDGCController, PDTracker
+export ADPDController, PDController, PDGCController, PDTracker
 
 include("functional.jl")
-
 
 include("kinematics.jl")
 export jacobian_transpose_ik!, jacobian_transpose_ik
