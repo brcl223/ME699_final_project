@@ -35,3 +35,13 @@ function bound_2pi(v::AbstractVector)
     bound = floor.(v ./ (2*pi))
     return v .- 2*pi .* bound
 end
+
+# Simple helper function to copy RigidBodyDynamics SegmentedVector
+# to a more useable object
+function copy_segvec(q::AbstractVector{T}) where T
+    out = Float64[]
+    for v in q
+        push!(out, v)
+    end
+    return out
+end

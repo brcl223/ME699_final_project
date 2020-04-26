@@ -57,10 +57,10 @@ function rrt_star(initial::AbstractArray,
                   final::AbstractArray,
                   state::MechanismState,
                   w::World;
-                  ϵ=0.5,
-                  rewire_range=1)
-    q_init = copy(initial)
-    q_final = copy(final)
+                  ϵ=1.5,
+                  rewire_range=3)
+    q_init = copy_segvec(initial)
+    q_final = copy_segvec(final)
 
     # First construct our collisions for the joints
     cyl_bottom = SVector(0., 0., 0.)
