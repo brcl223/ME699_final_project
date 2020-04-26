@@ -27,7 +27,7 @@ export Cylinder,
     apply_transform
 
 include("controllers.jl")
-export PDController, PDGCController
+export PDController, PDGCController, ADPDController
 
 include("functional.jl")
 

@@ -2,8 +2,8 @@ using Flux
 using RigidBodyDynamics
 using MeshCatMechanisms
 
-include("./utils/controllers.jl")
-using .Controllers
+include(joinpath(".", "utils", "utils.jl"))
+using .Utils
 
 function main()
     urdf = joinpath(".", "robot.urdf")
