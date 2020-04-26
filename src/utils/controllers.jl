@@ -85,16 +85,40 @@ function (pd::PDTracker)(τ::AbstractVector, t, state::MechanismState)
 end
 
 # Adaptive PD Controller
-mutable struct ADPDController
-    qd::AbstractVector
-    q̇d::AbstractVector
-    q̈d::AbstractVector
-    τ::AbstractVector
+mutable struct ADPDController{T}
+    q::AbstractVector{<:AbstractVector{T}}
+    q̇::AbstractVector{<:AbstractVector{T}}
     θ̂::AbstractVector
-    M̂::AbstractVector
+    i::Int64
+    Δt::Float64
+    kp::Float64
+    kd::Float64
 end
 
-ADPDController(dim) = ADPDController(gen_rand_pi(dim-1), gen_rand_pi(dim-1), gen_rand_pi(dim-1), zeros(dim), zeros(dim-1), [0.85; 2.2]);
+function ADPDController(q, q̇; θ̂=zeros(2), kp=100., kd=20., Δt=1e-3)
+    return ADPDController(q, q̇, θ̂, 1, Δt, kp, kd)
+end
+
+function calculate_desired_values(adpd::ADPDController, ΔT::Float64, i)
+    if i >= length(adpd.q) - 1
+        pd_i = adpd.q[end]
+        dim = length(pd_i)
+        return pd_i, zeros(dim), zeros(dim)
+    end
+
+    qi = adpd.q[i]
+    q̇i = adpd.q̇[i]
+    q_next = adpd.q[i+1]
+    q̇_next = adpd.q̇[i+1]
+
+    Δt = adpd.Δt
+
+    qd_i = qi + (q_next - qi) * ΔT / Δt
+    q̇d_i = q̇i + (q̇_next - q̇i) * ΔT / Δt
+    q̈d_i = (q̇_next - q̇i) / Δt
+
+    return (qd_i, q̇d_i, q̈d_i)
+end
 
 function Y(q, q̇, q̈)
     l1 = 1;
@@ -116,42 +140,35 @@ end
 # Control adapted from "Robot Manipulator Control Theory and Practice",
 # Pgs. 339-341, Example 6.2-2
 function (adpd::ADPDController)(τ::AbstractVector, t, state::MechanismState)
-    # All dimensions are set as dim-1 in order to neglect the swivel
-    # at the base for the time being
-    γ = 500*ones(length(adpd.τ));
 
-    n = length(γ);
-    In = Matrix(1.0I,n,n);
+    current_index = Integer(floor(t/adpd.Δt)) + 1
+    tk = (current_index - 1) * adpd.Δt
+
+    q = configuration(state);
+    q̇ = velocity(state);
+
+    ΔT = t - tk
+    q_d, q̇_d, q̈_d = calculate_desired_values(adpd, ΔT, current_index)
+    e = q_d - configuration(state)
+    ė = q̇_d - velocity(state)
+    q̈ = q̈_d + adpd.kp.*ė + adpd.kp.*e
+    M̂ = mass_matrix(state);
+
+    n = 2;
+    In = Matrix(1.0I, n,n);
     On = zeros(n,n);
 
-    kp = 125;
-    kv = 50;
-    Kp = kp*In;
-    Kv = kv*In;
+    Γ = 500 .*In;
+    P = 0.5*[1.5*adpd.kp 0.5; 0.5 1]
+    Q = [0.5*adpd.kp 0; 0 (adpd.kp+0.5)]
+    A = [0 1; -adpd.kp -adpd.kp]
+    B = [0 0; 1 1];
 
-    q = configuration(state)
-    q̇ = velocity(state)
+    if any(isnan,e) || any(isnan,ė)
+        error("NaN during simulation.")
+    end
 
-    e = q[1:end-1] - adpd.qd;
-    ė = q̇[1:end-1] - adpd.q̇d;
-    q̈ = Kv*ė + Kp*e;
-    aq = adpd.q̈d - q̈;
-
-    P = 0.5*[(Kp+0.5*Kv)*In 0.5*In; 0.5*In In];
-    Q = [0.5*Kp On; On (Kv+0.5*In)*In];
-    A = [On In; -Kp -Kv];
-    B = [On;In];
-
-    Δ = (2*adpd.M̂[2]*cos(q[2]) + 2*adpd.M̂[2] + adpd.M̂[1])*adpd.M̂[2] - (adpd.M̂[2]+adpd.M̂[2]*cos(q[2]))^2;
-    MI11 = (1/Δ)*adpd.M̂[2];
-    MI21 = -(1/Δ)*(adpd.M̂[2]*cos(q[2]) + adpd.M̂[2]);
-    MI22 = (1/Δ)*(2*adpd.M̂[2]*cos(q[2]) + 2*adpd.M̂[2] + adpd.M̂[1]);
-
-    τ .= [Y(q,q̇,aq)* adpd.θ̂; 0];
-    adpd.θ̂ =  -Γ \ (diag(adpd.M̂) \ Y(q,q̇,q̈))' * B' * P * e[1:end-1];
-
-    W = Y(q,q̇,q̈);
-    adpd.M̂[1] = γ[1]* ( (W[1,1]*MI11 + W[2,1]*MI21)*(0.5*e[1]+ė[1]) + (W[1,1]*MI21 + W[2,1]*MI22)*(0.5*e[2]+ė[2]) );
-    adpd.M̂[2] = γ[2]* ( (W[1,2]*MI11 + W[2,2]*MI21)*(0.5*e[1]+ė[1]) + (W[1,2]*MI21 + W[2,2]*MI22)*(0.5*e[2]+ė[2]) );
-    adpd.τ = copy(τ);
+    τ .= [M̂[1:end-1,1:end-1] * q̈[1:end-1] + Y(q,q̇,q̈)*adpd.θ̂; adpd.kp.*e[end]];
+    Φ = M̂[1:end-1,1:end-1] \ Y(q,q̇,q̈)
+    adpd.θ̂ .= -Γ \ (Φ' * (B' * P * e[1:end-1]))
 end

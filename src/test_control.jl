@@ -1,80 +1,86 @@
-using Flux
-using RigidBodyDynamics
+using Random
+
+using Blink
+using MeshCat
 using MeshCatMechanisms
+using RigidBodyDynamics
+using StaticArrays
 
 include(joinpath(".", "utils", "utils.jl"))
 using .Utils
 
-function main()
-    urdf = joinpath(".", "robot.urdf")
-    mechanism = parse_urdf(urdf)
-    state = MechanismState(mechanism)
-    dim = num_positions(mechanism)
-    pdgc = PDGCController(dim)
-    mvis = MechanismVisualizer(mechanism, URDFVisuals(urdf))
-    open(mvis)
+w = World()
 
-    while true
-        pd = PDController(dim)
-        adpd = ADPDController(dim)
-        pdgc.qd = pd.qd
-        adpd.qd = pd.qd
-        final_time = 10.
-        ts, qs, vs = simulate(state, final_time, pd; Δt=1e-3)
-        tsgc, qsgc, vsgc = simulate(state, final_time, pdgc; Δt=1e-3)
-        tsad, qsad, vsad = simulate(state, final_time, adpd; Δt=1e-3)
+cbo = SVector(0., 0., 0.)
+cto = SVector(0., 0., -1.)
+r = 0.1
 
-        println()
-        println("Configuration")
-        @show qs[end]
+add_object!(w, cbo, cto, r, SVector(0.4, 0.4, 0.5))
 
-        #println()
-        #println("Desired Configuration")
-        #@show pd.qd
+urdf = joinpath(".", "robot.urdf")
+mechanism = parse_urdf(urdf)
+state = MechanismState(mechanism)
 
-        #println()
-        #println("GravComp Configuration")
-        #@show qsgc[end]
+# First target is in Task space. Convert to joint space
+# to run RRT
+xd = Point3D(root_frame(mechanism), 1., 0.5, -0.7)
+body = findbody(mechanism, "link_lower_arm")
+point = Point3D(default_frame(body), 0., 0., -1.)
 
-        println()
-        println("Adaptive Configuration")
-        @show qsad[end]
+new_state = jacobian_transpose_ik!(state, body, point, xd)
 
-        #println()
-        #println("Gravity Torques")
-        #@show pd.τ
+@show configuration(new_state)
+@show transform(new_state, point, root_frame(mechanism))
 
-        #println()
-        #println("Predicted Torques")
-        #pred = pdgc.nn(qs[end])
-        #@show pred
+qd = copy(configuration(new_state))
+zero!(state)
 
-        println()
-        println("Adaptive Torques")
-        @show adpd.τ
+path = rrt_star(configuration(state), qd, state, w)
 
-        #println()
-        #println("MSE Error")
-        #@show Flux.mse(pd.τ, pred)
+@show path
 
-        #println()
-        #println("PD Error")
-        #@show Flux.mse(pd.qd, qs[end])
+q, q̇ = plan_trajectory(path)
+x = SVector{3,Float64}[]
 
-        #println()
-        #println("PDGC Error")
-        #@show Flux.mse(pdgc.qd, qsgc[end])
-
-        println()
-        println("ADPD Error")
-        @show Flux.mse(adpd.qd, qsad[end])
-
-        animate(mvis, tsad, qsad; realtimerate = 1.)
-
-        readline(stdin)
-    end
+for c in q
+    set_configuration!(state, c)
+    push!(x, transform(state, point, root_frame(mechanism)).v)
 end
 
+ts = Float64[]
+for t = 1:length(q)
+    push!(ts, (t-1)*1e-3)
+end
 
+@show length(q)
+@show length(q̇)
+@show length(ts)
+@show q[end-10:end]
 
-main()
+Δt = 1e-3
+adpd = ADPDController(q, q̇; Δt=Δt)
+zero!(state)
+
+tss, qss, vss = simulate(state, 5., adpd; Δt=Δt)
+
+@show length(tss)
+@show length(qss)
+
+pc = PointCloud(x)
+ls = LineSegments(pc, LineBasicMaterial())
+
+vis = MechanismVisualizer(mechanism, URDFVisuals(urdf))
+
+for (i, (low, up)) in enumerate(get_graphics(w))
+    setobject!(vis["static_bottom_$i"], low)
+    setobject!(vis["static_top_$i"], up)
+end
+
+open(vis, Window())
+
+setobject!(vis["traj"], ls)
+
+while true
+    animate(vis, tss, qss; realtimerate = 1.)
+    sleep(5)
+end
