@@ -1,14 +1,15 @@
-module Controllers
-
 using Flux
 using RigidBodyDynamics
 using LinearAlgebra
 
+<<<<<<< HEAD
 include("./nn.jl")
 using .NN
 
 export PDController, PDGCController, ADPDController
 
+=======
+>>>>>>> 78fc34e0c89c5fffe5b80759649b0ab4af74ddf8
 function gen_rand_pi(dim)
     return 2*pi .* rand(dim)
 end
@@ -40,6 +41,7 @@ function (pd::PDGCController)(τ::AbstractVector, t, state::MechanismState)
     qcur = configuration(state)
     τ .= -30 .* velocity(state) - 100 * (qcur - pd.qd) + pd.nn(qcur)
 end
+<<<<<<< HEAD
 
 # Adaptive PD Controller
 mutable struct ADPDController
@@ -114,3 +116,5 @@ function (adpd::ADPDController)(τ::AbstractVector, t, state::MechanismState)
 end
 
 end
+=======
+>>>>>>> 78fc34e0c89c5fffe5b80759649b0ab4af74ddf8

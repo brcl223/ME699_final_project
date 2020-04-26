@@ -1,5 +1,3 @@
-module NN
-
 using Flux, CuArrays
 using BSON: @save, @load
 
@@ -29,6 +27,4 @@ function load_nn(filename; use_gpu=false)
         nn = gpu(nn)
     end
     return nn
-end
-
 end
