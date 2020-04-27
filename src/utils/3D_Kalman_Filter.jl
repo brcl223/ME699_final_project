@@ -26,10 +26,26 @@ function linearizePointModel(xTrue,Rvm,Rwm,yk,lmarks)
     Rw[1:3,1:3,1:3] = Rwm
     Rv[1:3,1:3,1:3] = Rvm
 
-    C=[-1 0 0 1 0 0; 0 -1 0 0 1 0; 0 0 -1 0 0 1];
+        Rw[1:3,1:3,1:3] = Rwm
+    Rv[1:3,1:3,1:3] = Rvm
+
+    for i in 1:nl
+        A[3+3*i-2,3+3*i-2] = 1.0;
+        A[3+3*i-1,3+3*i-1] = 1.0;
+        A[3+3*i  ,3+3*i] = 1.0;
+        Rv[(3*i-1):(3*i),(3*i-1):(3*i),(3*i-1):(3*i)] = Rvm;
+        #Rw[(2+2*i-1):(2+2*i),(2+2*i-1):(2+2*i)] = 0.1*Rwm;
+        C[3*i-2,1] = -1.0;
+        C[3*i-1,2] = -1.0;
+        C[3*i  ,3] = -1.0;
+        C[3*i-2,3+3*i-2] = 1.0;
+        C[3*i-1,3+3*i-1] = 1.0;
+        C[3*i  ,3+3*i  ] = 1.0;
+    end
     mysys = LTIsys(A,B,C,Rw,Rv)
     return mysys
 end
+
 
 # Start
 Rv = diagm([0.003;0.005;0.004]) # range, bearing measurement noise
