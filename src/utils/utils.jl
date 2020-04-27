@@ -29,7 +29,7 @@ export Cylinder,
     apply_transform
 
 include("controllers.jl")
-export ADPDController, PDController, PDGCController, PDTracker
+export ADPDController, ADPDInertial, PDController, PDGCController, PDTracker
 
 include("functional.jl")
 

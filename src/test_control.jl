@@ -1,10 +1,16 @@
-using Random
+using Pkg
+Pkg.activate(@__DIR__)
+Pkg.instantiate()
 
+using Random
 using Blink
 using MeshCat
 using MeshCatMechanisms
 using RigidBodyDynamics
 using StaticArrays
+using Plots
+using DataFrames
+using CSV
 
 include(joinpath(".", "utils", "utils.jl"))
 using .Utils
@@ -59,9 +65,11 @@ end
 
 Δt = 1e-3
 adpd = ADPDController(q, q̇; Δt=Δt)
+#adi = ADPDInertial(q, q̇; Δt=Δt)
 zero!(state)
 
-tss, qss, vss = simulate(state, 15., adpd; Δt=Δt)
+tss, qss, vss = simulate(state, 5., adpd; Δt=Δt)
+#tss, qss, vss = simulate(state, 5., adi; Δt=Δt)
 
 @show length(tss)
 @show length(qss)
@@ -80,7 +88,21 @@ open(vis, Window())
 
 setobject!(vis["traj"], ls)
 
-while true
-    animate(vis, tss, qss; realtimerate = 1.)
-    sleep(5)
+#MeshCatMechanisms.animate(vis, tss, qss; realtimerate = 1.)
+#sleep(5)
+
+cols = length(qd)
+rows = length(qss[:,1])
+
+@show rows
+@show cols
+
+ess = zeros(rows, cols)
+
+global ess = zeros(rows, cols)
+for ii=1:rows
+    ess[ii,:] = qd - qss[ii,:][1]
 end
+
+df = DataFrame(A=tss, B=ess[:,1], C=ess[:,2], D=ess[:,3])
+CSV.write("data.csv", df)
