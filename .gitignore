@@ -3,3 +3,4 @@
 *.log
 *.aux
 *.auctex-auto
+*.DS_Store

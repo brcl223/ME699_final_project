@@ -95,7 +95,7 @@ mutable struct ADPDController{T}
     kd::Float64
 end
 
-function ADPDController(q, q̇; θ̂=zeros(2), kp=100., kd=20., Δt=1e-3)
+function ADPDController(q, q̇; θ̂=zeros(2), kp=50., kd=5., Δt=1e-3)
     return ADPDController(q, q̇, θ̂, 1, Δt, kp, kd)
 end
 
@@ -120,6 +120,8 @@ function calculate_desired_values(adpd::ADPDController, ΔT::Float64, i)
     return (qd_i, q̇d_i, q̈d_i)
 end
 
+# Regressor function attributed to "Robot Manipulator Control Theory and Practice",
+# Pg. 332, Example 6.2-1
 function Y(q, q̇, q̈)
     l1 = 1;
     l2 = 1;

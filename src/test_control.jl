@@ -61,7 +61,7 @@ end
 adpd = ADPDController(q, q̇; Δt=Δt)
 zero!(state)
 
-tss, qss, vss = simulate(state, 5., adpd; Δt=Δt)
+tss, qss, vss = simulate(state, 15., adpd; Δt=Δt)
 
 @show length(tss)
 @show length(qss)
