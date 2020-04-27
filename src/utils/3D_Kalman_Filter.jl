@@ -72,9 +72,11 @@ for i in 1:1000
     #uk = [v;w];
     #xTrue = mysys.A[1:2,1:2]*xTrue + uk + 1.0*Rw*randn(2,1);
     yk = zeros(3);
-    yk[1] = lmarks[1,1] - xTrue[1];
-    yk[2] = lmarks[1,2] - xTrue[2];
-    yk[3] = lmarks[1,3] - xTrue[3];
+     for j in 1:nl
+        yk[3*j-2] = lmarks[j,1] - xTrue[1]
+        yk[3*j-1] = lmarks[j,2] - xTrue[2]
+        yk[3*j  ] = lmarks[j,3] - xTrue[3]
+    end
     yk = yk+mysys.Rv*randn(3*nl,1)
     mu,Sigma = filter_update(mysys,mu,Sigma,uk,yk);
   
