@@ -4,6 +4,38 @@ function gen_rand_pi(dim)
     return 2*pi .* rand(dim)
 end
 
+# A pseudo controller to computer q̈ given a desired
+# gravity compensated torque τ
+mutable struct MassController
+    dim::Integer
+    λ::Float64
+    τ::AbstractVector
+end
+
+# This will make dim controllers to allow the same point to be tested
+# With the formulation for the mass matrix, if Τ = [τ₁ .. τₙ], where each
+# τᵢ has an entry of λ at i and 0 everywhere else in the vector, we get
+# that Τ = λ*I, making the final computation for the mass matrix
+# M(q) = λ*inv(Q̈)
+function make_mass_controllers(dim::Integer, λ::Float64)
+    qd = gen_rand_pi(dim)
+    controllers = MassController[]
+    for i = 1:dim
+        τ = zeros(dim)
+        τ[i] = λ
+        push!(controllers, MassController(dim, λ, τ))
+    end
+
+    return controllers
+end
+
+# For this to work, ensure that the state velocities are zeroed before hand
+function (mc::MassController)(τ::AbstractVector, t, state::MechanismState)
+    # dynamics_bias here will be C(q,q̇)q̇ + G(q), but since we only want
+    # the first state when q̇ ≈ 0, it should simply to only the gravity vector
+    τ .= dynamics_bias(state) + mc.τ
+end
+
 mutable struct PDController
     qd::AbstractVector
     τ::AbstractVector
@@ -39,10 +71,11 @@ mutable struct PDTracker{T}
     Δt::Float64
     kp::Float64
     kd::Float64
+    mass_nn::Union{Nothing,Chain}
 end
 
-function PDTracker(q, q̇; kp=100., kd=20., Δt=1e-3)
-    return PDTracker(q, q̇, 1, Δt, kp, kd)
+function PDTracker(q, q̇, nn=nothing; kp=100., kd=20., Δt=1e-3)
+    return PDTracker(q, q̇, 1, Δt, kp, kd, nn)
 end
 
 # LERP to find our desired values
@@ -81,7 +114,13 @@ function (pd::PDTracker)(τ::AbstractVector, t, state::MechanismState)
         error("NaN during simulation.")
     end
 
-    τ .= mass_matrix(state) * (q̈_d + pd.kp.*ė + pd.kp.*e) + dynamics_bias(state)
+    M = if pd.mass_nn != nothing
+        pd.mass_nn(configuration(state))
+    else
+        mass_matrix(state)
+    end
+
+    τ .= M * (q̈_d + pd.kp.*ė + pd.kp.*e) + dynamics_bias(state)
 end
 
 # Adaptive PD Controller

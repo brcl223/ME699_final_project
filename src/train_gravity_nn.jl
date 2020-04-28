@@ -4,8 +4,8 @@ using IterTools: ncycle
 
 using Flux.Data, Flux.Optimise
 
-include("utils/nn.jl")
-using NN
+include("utils/utils.jl")
+using .Utils
 
 function main()
     nn = build_nn(3, 3) |> gpu

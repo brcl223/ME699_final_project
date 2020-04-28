@@ -4,3 +4,7 @@
 *.aux
 *.auctex-auto
 *.DS_Store
+
+# Data and models for NN
+*.jld
+*.bson
