@@ -36,8 +36,22 @@ function bound_2pi(v::AbstractVector)
     return v .- 2*pi .* bound
 end
 
+function bound_pi_npi(v::AbstractVector)
+    return bound_2pi(v .+ pi) .- pi
+end
+
+function bound_2pi_n2pi(v::AbstractVector)
+    return 2 * (bound_2pi(0.5 .* v .+ pi) .- pi)
+end
+
+function bound_joints(v::AbstractVector)
+    # All joints bounded by -2Π < v < 2Π
+    return bound_2pi_n2pi(v)
+end
+
 function gen_rand_pi(dim)
-    return 2*pi .* rand(dim)
+    # Generate number -2Π < x < 2Π
+    return 4*pi .* (rand(dim) .- 0.5)
 end
 
 # Simple helper function to copy RigidBodyDynamics SegmentedVector

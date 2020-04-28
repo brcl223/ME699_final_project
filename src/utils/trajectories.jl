@@ -57,8 +57,7 @@ function plan_trajectory(qs::AbstractVector{<:AbstractVector{T}};
     println("Steps on last run: $Δd")
 
     if Δd < steps_to_stop
-        println("ERROR: Not enough steps to slow down")
-        return nothing
+        error("ERROR: Not enough steps to slow down")
     end
 
     while Δd - steps_taken > (current_step + max_step_size)

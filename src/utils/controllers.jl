@@ -72,27 +72,30 @@ mutable struct PDTracker{T}
     kp::Float64
     kd::Float64
     mass_nn::Union{Nothing,Chain}
+    kfs::Union{Nothing,KalmanFilterState}
 end
 
-function PDTracker(q, q̇, nn=nothing; kp=100., kd=20., Δt=1e-3)
-    return PDTracker(q, q̇, 1, Δt, kp, kd, nn)
+function PDTracker(q, q̇, nn=nothing, kfs=nothing; kp=100., kd=20., Δt=1e-3)
+    return PDTracker(q, q̇, 1, Δt, kp, kd, nn, kfs)
 end
 
 # LERP to find our desired values
 # q̈ is just δv/δt
-function calculate_desired_values(pd::PDTracker, ΔT::Float64, i)
-    if i >= length(pd.q) - 1
-        pd_i = pd.q[end]
+function calculate_desired_values(q::AbstractArray,
+                                  q̇::AbstractArray,
+                                  Δt::Float64,
+                                  ΔT::Float64,
+                                  i::Int64)
+    if i >= length(q) - 1
+        pd_i = q[end]
         dim = length(pd_i)
         return pd_i, zeros(dim), zeros(dim)
     end
 
-    qi = pd.q[i]
-    q̇i = pd.q̇[i]
-    q_next = pd.q[i+1]
-    q̇_next = pd.q̇[i+1]
-
-    Δt = pd.Δt
+    qi = q[i]
+    q̇i = q̇[i]
+    q_next = q[i+1]
+    q̇_next = q̇[i+1]
 
     qd_i = qi + (q_next - qi) * ΔT / Δt
     q̇d_i = q̇i + (q̇_next - q̇i) * ΔT / Δt
@@ -101,26 +104,73 @@ function calculate_desired_values(pd::PDTracker, ΔT::Float64, i)
     return (qd_i, q̇d_i, q̈d_i)
 end
 
+function combine_joint_state(q::AbstractVector, q̇::AbstractVector)
+    out = []
+    n = length(q)
+    for i = 1:n
+        push!(out,q[i])
+        push!(out,q̇[i])
+    end
+    return out
+end
+
+function split_joint_state(x̂::AbstractVector)
+    q = []
+    q̇ = []
+    for i = 1:length(x̂)
+        if i % 2 == 0 # Even case
+            push!(q̇, x̂[i])
+        else
+            push!(q, x̂[i])
+        end
+    end
+    return (q, q̇)
+end
+
 function (pd::PDTracker)(τ::AbstractVector, t, state::MechanismState)
     current_index = Integer(floor(t/pd.Δt)) + 1
     tk = (current_index - 1) * pd.Δt
 
+    q = configuration(state)
+    q̇ = velocity(state)
+
+    if pd.kfs != nothing
+        N = D.Normal(0,0.1)
+        q = q + rand(N,3)
+        q̇ = q̇ + rand(N,3)
+        z = combine_joint_state(q,q̇)
+        x̂ = update_filter!(pd.kfs,
+                           z,
+                           get_state(pd.kfs, "accel"),
+                           pd.Δt,
+                           current_index)
+
+        q, q̇ = split_joint_state(x̂)
+    end
+
     ΔT = t - tk
-    q_d, q̇_d, q̈_d = calculate_desired_values(pd, ΔT, current_index)
-    e = q_d - configuration(state)
-    ė = q̇_d - velocity(state)
+    q_d, q̇_d, q̈_d = calculate_desired_values(pd.q, pd.q̇, pd.Δt, ΔT, current_index)
+    e = q_d - q
+    ė = q̇_d - q̇
 
     if any(isnan,e) || any(isnan,ė)
         error("NaN during simulation.")
     end
 
     M = if pd.mass_nn != nothing
-        pd.mass_nn(configuration(state))
+        vec_to_sym(pd.mass_nn(configuration(state)))
     else
         mass_matrix(state)
     end
 
     τ .= M * (q̈_d + pd.kp.*ė + pd.kp.*e) + dynamics_bias(state)
+
+    if pd.kfs != nothing
+        result = DynamicsResult(state.mechanism)
+        dynamics!(result, state, τ)
+        q̈_next = copy_segvec(result.v̇)
+        add_state!(pd.kfs, "accel", q̈_next)
+    end
 end
 
 # Adaptive PD Controller
@@ -136,27 +186,6 @@ end
 
 function ADPDController(q, q̇; θ̂=zeros(2), kp=100., kd=100., Δt=1e-3)
     return ADPDController(q, q̇, θ̂, 1, Δt, kp, kd)
-end
-
-function calculate_desired_values(adpd::ADPDController, ΔT::Float64, i)
-    if i >= length(adpd.q) - 1
-        pd_i = adpd.q[end]
-        dim = length(pd_i)
-        return pd_i, zeros(dim), zeros(dim)
-    end
-
-    qi = adpd.q[i]
-    q̇i = adpd.q̇[i]
-    q_next = adpd.q[i+1]
-    q̇_next = adpd.q̇[i+1]
-
-    Δt = adpd.Δt
-
-    qd_i = qi + (q_next - qi) * ΔT / Δt
-    q̇d_i = q̇i + (q̇_next - q̇i) * ΔT / Δt
-    q̈d_i = (q̇_next - q̇i) / Δt
-
-    return (qd_i, q̇d_i, q̈d_i)
 end
 
 # Regressor function attributed to "Robot Manipulator Control Theory and Practice",
@@ -189,7 +218,7 @@ function (adpd::ADPDController)(τ::AbstractVector, t, state::MechanismState)
     q̇ = velocity(state);
 
     ΔT = t - tk
-    q_d, q̇_d, q̈_d = calculate_desired_values(adpd, ΔT, current_index)
+    q_d, q̇_d, q̈_d = calculate_desired_values(adpd.q, adpd.q̇, qdpd.Δt, ΔT, current_index)
     e = q_d - configuration(state)
     ė = q̇_d - velocity(state)
     q̈ = q̈_d + adpd.kp.*ė + adpd.kp.*e
@@ -229,27 +258,6 @@ function ADPDInertial(q, q̇; θ̂=zeros(2), kp=100., kd=100., Δt=1e-3)
     return ADPDInertial(q, q̇, θ̂, 1, Δt, kp, kd)
 end
 
-function calculate_desired_values(adi::ADPDInertial, ΔT::Float64, i)
-    if i >= length(adi.q) - 1
-        pd_i = adi.q[end]
-        dim = length(pd_i)
-        return pd_i, zeros(dim), zeros(dim)
-    end
-
-    qi = adi.q[i]
-    q̇i = adi.q̇[i]
-    q_next = adi.q[i+1]
-    q̇_next = adi.q̇[i+1]
-
-    Δt = adi.Δt
-
-    qd_i = qi + (q_next - qi) * ΔT / Δt
-    q̇d_i = q̇i + (q̇_next - q̇i) * ΔT / Δt
-    q̈d_i = (q̇_next - q̇i) / Δt
-
-    return (qd_i, q̇d_i, q̈d_i)
-end
-
 # Regressor function attributed to "Robot Manipulator Control Theory and Practice",
 # Pg. 348, Example 6.3-1
 function Y(q̈d, q̇d, qd, q, q̇, Λ)
@@ -283,7 +291,7 @@ function (adi::ADPDInertial)(τ::AbstractVector, t, state::MechanismState)
     q̇ = velocity(state);
 
     ΔT = t - tk
-    q_d, q̇_d, q̈_d = calculate_desired_values(adi, ΔT, current_index)
+    q_d, q̇_d, q̈_d = calculate_desired_values(adi.q, adi.q̇, adi.Δt, ΔT, current_index)
     e = q_d - q
     ė = q̇_d - q̇
 

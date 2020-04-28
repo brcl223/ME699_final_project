@@ -63,12 +63,9 @@ function rrt_star(initial::AbstractArray,
     q_final = copy_segvec(final)
 
     # First construct our collisions for the joints
-    cyl_bottom = SVector(0., 0., 0.)
-    cyl_top = SVector(0., 0., -1.)
     r = 0.05
-
-    lower_cyl = RoboCylinder(cyl_bottom, cyl_top, r, state, "link_lower_arm")
-    upper_cyl = RoboCylinder(cyl_bottom, cyl_top, r, state, "link_upper_arm")
+    lower_cyl = RoboCylinder(r, state, "link_lower_arm")
+    upper_cyl = RoboCylinder(r, state, "link_upper_arm")
 
     # First check our start and end states to make sure they're valid
     if check_collisions(w, lower_cyl, q_init) ||

@@ -6,7 +6,7 @@ using CoordinateTransformations
 using DifferentialEquations
 using Distributions
 using Flux
-using GeometryTypes: Point
+using GeometryTypes
 using LazySets
 using LinearAlgebra
 using MeshCat
@@ -15,6 +15,8 @@ using RigidBodyDynamics
 using StaticArrays
 
 const CT = CoordinateTransformations
+const D = Distributions
+const GT = GeometryTypes
 const LS = LazySets
 const RBD = RigidBodyDynamics
 
@@ -28,8 +30,24 @@ export Cylinder,
     check_collisions,
     graphics_transform,
     collision_transform,
-    apply_transform
+    apply_transform,
+    get_cylinders
 
+include("functional.jl")
+export bound_joints,
+    gen_rand_pi,
+    sym_to_vec,
+    vec_to_sym
+
+include("kalman.jl")
+export KalmanFilter,
+    KalmanFilterState,
+    add_state!,
+    get_state,
+    update_filter!,
+    constant_velocity_car_example
+
+# MUST COME AFTER kalman.jl
 include("controllers.jl")
 export ADPDController,
     ADPDInertial,
@@ -37,17 +55,8 @@ export ADPDController,
     PDController,
     PDGCController,
     PDTracker,
+    combine_joint_state,
     make_mass_controllers
-
-include("functional.jl")
-export gen_rand_pi,
-    sym_to_vec,
-    vec_to_sym
-
-include("kalman.jl")
-export KalmanFilter,
-    update_filter!,
-    constant_velocity_car_example
 
 include("kinematics.jl")
 export jacobian_transpose_ik!, jacobian_transpose_ik

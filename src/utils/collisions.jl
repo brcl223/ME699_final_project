@@ -8,12 +8,17 @@ function to_transform_3d(v::AbstractVector, m::Mechanism)
 end
 
 mutable struct Cylinder{N}
+    to::AbstractVector
+    bo::AbstractVector
+    r::Float64
     top_points::AbstractVector
     bottom_points::AbstractVector
     P::LazySet{N}
 end
 
-function Cylinder(bo, to, r)
+function Cylinder(r::Float64, h::Float64 = -1.)
+    bo = SVector(0., 0., 0.)
+    to = SVector(0., 0., h)
     θ = repeat(range(0, stop=2*pi, length=10), inner=(2,))[2:end]
     bx, by, bz = bo
     tx, ty, tz = to
@@ -23,7 +28,7 @@ function Cylinder(bo, to, r)
 
     all_points = vcat(bottom_circle, top_circle)
     P = VPolytope(all_points)
-    return Cylinder(top_circle, bottom_circle, P)
+    return Cylinder(to, bo, r, top_circle, bottom_circle, P)
 end
 
 function graphics_transform(c::Cylinder, af::CT.AbstractAffineMap)
@@ -70,8 +75,8 @@ mutable struct RoboCylinder{N}
     body::RigidBody
 end
 
-function RoboCylinder(bo, to, r, state, body_name)
-    c = Cylinder(bo, to, r)
+function RoboCylinder(r, state, body_name)
+    c = Cylinder(r)
     body = findbody(state.mechanism, body_name)
     return RoboCylinder(c, state, body)
 end
@@ -102,8 +107,11 @@ function World()
     World([], [], [])
 end
 
-function add_object!(w::World, bo, to, r, loc::AbstractVector)
-    c = Cylinder(bo, to, r)
+function add_object!(w::World,
+                     r::Float64,
+                     h::Float64,
+                     loc::AbstractVector)
+    c = Cylinder(r, h)
     push!(w.cylinders, c)
     push!(w.locations, loc)
     push!(w.graphics, graphics_transform(c, loc))
@@ -111,6 +119,19 @@ end
 
 function get_graphics(w::World)
     return w.graphics
+end
+
+function get_cylinders(w::World)
+    out = []
+    for (c, loc) in zip(w.cylinders, w.locations)
+        af = CT.Translation(loc)
+        c1 = af(c.to)
+        c2 = af(c.bo)
+        cylinder = GT.Cylinder(Point(c1), Point(c2), c.r)
+        push!(out, cylinder)
+    end
+
+    return out
 end
 
 function check_collisions(w::World, rc::RoboCylinder, q::AbstractVector)::Bool
