@@ -158,7 +158,7 @@ function (pd::PDTracker)(τ::AbstractVector, t, state::MechanismState)
     end
 
     M = if pd.mass_nn != nothing
-        vec_to_sym(pd.mass_nn(configuration(state)))
+        vec_to_sym(pd.mass_nn(q))
     else
         mass_matrix(state)
     end
@@ -182,10 +182,12 @@ mutable struct ADPDController{T}
     Δt::Float64
     kp::Float64
     kd::Float64
+    mass_nn::Union{Nothing,Chain}
+    kfs::Union{Nothing,KalmanFilterState}
 end
 
-function ADPDController(q, q̇; θ̂=zeros(2), kp=100., kd=100., Δt=1e-3)
-    return ADPDController(q, q̇, θ̂, 1, Δt, kp, kd)
+function ADPDController(q, q̇, nn=nothing, kfs=nothing; θ̂=zeros(2), kp=100., kd=100., Δt=1e-3)
+    return ADPDController(q, q̇, θ̂, 1, Δt, kp, kd, nn, kfs)
 end
 
 # Regressor function attributed to "Robot Manipulator Control Theory and Practice",
@@ -217,12 +219,31 @@ function (adpd::ADPDController)(τ::AbstractVector, t, state::MechanismState)
     q = configuration(state);
     q̇ = velocity(state);
 
+    if adpd.kfs != nothing
+        N = D.Normal(0,0.1)
+        q = q + rand(N,3)
+        q̇ = q̇ + rand(N,3)
+        z = combine_joint_state(q,q̇)
+        x̂ = update_filter!(adpd.kfs,
+                           z,
+                           get_state(adpd.kfs, "accel"),
+                           adpd.Δt,
+                           current_index)
+
+        q, q̇ = split_joint_state(x̂)
+    end
+
     ΔT = t - tk
-    q_d, q̇_d, q̈_d = calculate_desired_values(adpd.q, adpd.q̇, qdpd.Δt, ΔT, current_index)
+    q_d, q̇_d, q̈_d = calculate_desired_values(adpd.q, adpd.q̇, adpd.Δt, ΔT, current_index)
     e = q_d - configuration(state)
     ė = q̇_d - velocity(state)
     q̈ = q̈_d + adpd.kp.*ė + adpd.kp.*e
-    M̂ = mass_matrix(state);
+    # M̂ = if adpd.mass_nn == nothing
+    #     mass_matrix(state);
+    # else
+    #     vec_to_sym(adpd.mass_nn(q))
+    # end
+    M̂ = mass_matrix(state)
 
     n = 2;
     In = Matrix(1.0I, n,n);
@@ -234,8 +255,32 @@ function (adpd::ADPDController)(τ::AbstractVector, t, state::MechanismState)
     A = [0 1; -adpd.kp -adpd.kp]
     B = [0 0; 1 1];
 
+    if any(isnan, q)
+        error("NaN during simulation: q")
+    end
+
+    if any(isnan, q̇)
+        error("NaN during simulation: q̇")
+    end
+
+    if any(isnan, q_d)
+        error("NaN during simulation: q_d")
+    end
+
+    if any(isnan, q̇_d)
+        error("NaN during simulation: q̇_d")
+    end
+
+    if any(isnan, q̈_d)
+        error("NaN during simulation: q̈_d")
+    end
+
+    if any(isnan, M̂)
+        error("NaN during simulation: M̂")
+    end
+
     if any(isnan,e) || any(isnan,ė)
-        error("NaN during simulation.")
+        error("NaN during simulation: Error estimate")
     end
 
     τ .= [200*e[1]+60*ė[1]; (M̂[2:end,2:end] * q̈[2:end] + Y(q,q̇,q̈)*adpd.θ̂)];

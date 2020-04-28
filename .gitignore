@@ -14,7 +14,3 @@
 *.toc
 *.gz
 *.lof
-
-# Data and models for NN
-*.jld
-*.bson
