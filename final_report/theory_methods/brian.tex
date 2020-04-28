@@ -1,21 +1,38 @@
-\section{Perception and Planning}
-\subsection{Uncertainty in Configurations}
-The robot configuration $q_1$, $q_2$, ..., $q_n$ determines how the robot will
-interact with the task space and the end-effector.
-Assuming that the end-effector has a camera on its end and can understand its
-surroundings, the perception through said camera will be used to achieve motion
-and interaction with an object in the task space.
-A combination of the RRT path planning algorithm, Kalman filtering, and
-Forward/Inverse kinematics will lead to the configuration that the robot is in
-to have the end-effector reach the object.
-An object with some mass $M_o$ will be placed in the task space.
-The robot's purpose is to move to the object, pick it up, and move it to a
-desired position.
-
-\subsection{Approach}
-The end-effector perception problem requires many disciplines of robotics.
-First, a landmark based Kalman filter will be applied to the robot.
-This will test our ability to move to the object.
-Then, applying kinematic theory, the configuration of the robot to achieve the
-end-effector location and orientation corresponding to the object will be
-achieved.
+\subsection*{The Kalman Filter}
+The Kalman Filter is used to mitigate the noise present in a system as the system moves.  The goal is to know what the robot is doing at the next time step, using the knowledge of the current time step.  The motion of the system is described by the following uncertainty model:
+\begin{equation}
+    x_{t=1}=Ax_t+Bu_t+v_t,
+\end{equation}
+where $v_t$ is a Gaussian noise variable pertaining to the uncertainty in the system behavior.
+\\
+The measurement made by the camera follows the uncertainty model
+\begin{equation}
+    y_t=Cx_t+w_t,
+\end{equation}
+where $w_t$ is a Gaussian noise variable describing the uncertainty in the camera's mapping of the environment.
+\\
+The Kalman Filter proceeds with a motion update that represents the motion of the model with noise:
+\begin{equation}
+    \mu_t^{pred}=A\mu_t+Bu_t
+\end{equation}
+\begin{equation}
+    \Sigma_t^{pred}=A\Sigma_tA^T+R_v
+\end{equation}
+\\
+After completing the motion, the camera makes a measurement update:
+\begin{equation}
+    K_t=\Sigma_t^{pred}C^{T}(C\Sigma_t^{pred}C^{T}+R_w)^{-1}
+\end{equation}
+\begin{equation}
+    \mu_{t+1}=\mu_t^{pred}+K(y_t-C\mu_t^{pred})
+\end{equation}
+\begin{equation}
+    \Sigma_{t+1}=(I-KC)\Sigma_t^{pred}
+\end{equation}
+\\
+\subsection*{Implementation}
+Since the camera is attached to the end-effector, the measurements from the camera are made from the frame of the end-effector.  Since the system explores $\R^{3x3}$, the Kalman Filter is created to handle three-dimensional space, ignoring orientations.  So, the robot $r$ and any landmark $L$ \in $\R^{3x3}$.  The state is therefore a vector consisting of the robot and landmark x-y-z coordinates:
+\begin{equation}
+    x=[x_r;y_r;z_r;...;L_{xi};L_{yi};L_{zi}] for i landmarks.
+\end{equation}
+Matrices A and B contain only non-zero elements on the main diagonal with entries of 1.  Matrix A has size $(3+3i)x(3+3i)$ and Matrix B is of size $(3+3i)x3$.  The matrix C describes the measurement as the distance between the landmark and the robot.  C is of size $(3i)x(3i+3)$.  The non-zero entries lie on the diagonals, with -1 entered on the corresponding robot state and 1 entered on the corresponding landmark state.
