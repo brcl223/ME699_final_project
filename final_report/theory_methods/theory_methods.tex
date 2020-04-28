@@ -1,0 +1,22 @@
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}
+	\robotbase
+	\angann{\thetaone}{$\theta_1$}
+	\lineann[0.7]{\thetaone}{\Lone}{$L_1$}
+	\link(\thetaone:\Lone);
+	\joint
+	\begin{scope}[shift=(\thetaone:\Lone), rotate=\thetaone]
+	\angann{\thetatwo}{$\theta_2$}
+	\lineann[-1.5]{\thetatwo}{\Ltwo}{$L_2$}
+	\link(\thetatwo:\Ltwo);
+	\joint
+	\begin{scope}[shift=(\thetatwo:\Ltwo), rotate=\thetatwo]
+	\grip
+	\end{scope}
+	\end{scope}
+	\end{tikzpicture}
+	\caption{2-Link Robotic Manipulator}
+	\label{fig:manip2link}
+\end{figure}

@@ -41,7 +41,7 @@ mutable struct PDTracker{T}
     kd::Float64
 end
 
-function PDTracker(q, q̇; kp=100., kd=20., Δt=1e-3)
+function PDTracker(q, q̇; kp=100., kd=100., Δt=1e-3)
     return PDTracker(q, q̇, 1, Δt, kp, kd)
 end
 

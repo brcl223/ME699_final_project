@@ -4,3 +4,6 @@
 *.aux
 *.auctex-auto
 *.DS_Store
+*.csv
+*.m
+*.eps

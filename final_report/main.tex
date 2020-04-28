@@ -2,6 +2,70 @@
 
 \usepackage{amssymb}
 \usepackage{amsmath}
+\usepackage[latin1]{inputenc}
+\usepackage{tikz}
+\usepackage{float}
+\usetikzlibrary{patterns}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%			Commands to draw the manipulator			%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\nvar}[2]{%
+	\newlength{#1}
+	\setlength{#1}{#2}
+}
+
+
+\nvar{\dg}{0.3cm}
+\def\dw{0.25}\def\dh{0.5}
+\nvar{\ddx}{1.5cm}
+
+
+\def\link{\draw [double distance=1.5mm, very thick] (0,0)--}
+\def\joint{%
+	\filldraw [fill=white] (0,0) circle (5pt);
+	\fill[black] circle (2pt);
+}
+\def\grip{%
+	\draw[ultra thick](0cm,\dg)--(0cm,-\dg);
+	\fill (0cm, 0.5\dg)+(0cm,1.5pt) -- +(0.6\dg,0cm) -- +(0pt,-1.5pt);
+	\fill (0cm, -0.5\dg)+(0cm,1.5pt) -- +(0.6\dg,0cm) -- +(0pt,-1.5pt);
+}
+\def\robotbase{%
+	\draw[rounded corners=8pt] (-\dw,-\dh)-- (-\dw, 0) --
+	(0,\dh)--(\dw,0)--(\dw,-\dh);
+	\draw (-0.5,-\dh)-- (0.5,-\dh);
+	\fill[pattern=north east lines] (-0.5,-1) rectangle (0.5,-\dh);
+}
+
+\newcommand{\angann}[2]{%
+	\begin{scope}[black]
+		\draw [dashed, black] (0,0) -- (1.2\ddx,0pt);
+		\draw [->, shorten >=3.5pt] (\ddx,0pt) arc (0:#1:\ddx);
+		\node at (#1/2-2:\ddx+8pt) {#2};
+	\end{scope}
+}
+
+\newcommand{\lineann}[4][0.5]{%
+	\begin{scope}[rotate=#2, black,inner sep=2pt]
+		\draw[dashed, black!40] (0,0) -- +(0,#1)
+		node [coordinate, near end] (a) {};
+		\draw[dashed, black!40] (#3,0) -- +(0,#1)
+		node [coordinate, near end] (b) {};
+		\draw[|<->|] (a) -- node[fill=white] {#4} (b);
+	\end{scope}
+}
+
+\def\thetaone{30}
+\def\Lone{2}
+\def\thetatwo{30}
+\def\Ltwo{2}
+\def\thetathree{30}
+\def\Lthree{1}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%			Commands to draw the manipulator			%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \title{ME699 Final Project Report}
 \date{26-04-2020}
@@ -11,55 +75,10 @@
 \pagenumbering{gobble}
 \maketitle
 
-\section{Project Outline}
-For our project, we are proposing three primary phases:
-
-\begin{itemize}
-  \item Modeling
-  \item Perception and Planning
-  \item Control
-\end{itemize}
-
-\noindent Each phase of the project will feed into the next.
-For instance, the model designed in the robotic modeling section will then be
-used in the control section of the project.
-By the end of the project, our goal is to have a fully modeled, controlled
-robotic manipulator capable of following a simple trajectory and moving to
-desired target locations in task space to accomplish simple goals.
-
-\section{Demonstration}
-The end goal of our project is to apply the modeling, perception and adaptive
-controls to the Panda Robot arm.
-The task will consist of the arm beginning in a configuration, moving towards an
-intermediate state where an object is located, picking up that object, and
-successfully moving that object to a desired goal state.
-The object will be of unknown and variable mass, meaning the arm must be able to
-effectively adapt to objects of differing weight online.
-The exact location of the object must also be identified by the ``camera''
-attached to the Panda, meaning a valid path must be found to both reach the
-object and take it to the goal state.
-The goal state will be fixed.
-
-For the modeling portion, both static free and dry friction models will be used.
-The perception and planning portion will be tasked with filtering out small
-amounts of Gaussian white noise from both the joint configurations and the
-camera readings in task space.
-It must also find a valid trajectory of configurations in both task and joint
-space to complete the objective.
-The adaptive controller will use both the modeling and perception values in
-determining the joint torques to command to follow the given trajectory.
-It will also compensate for the additional weight on the last link of the arm
-when the object of unknown mass is picked up.
-
-\input{benton.tex}
-\input{brian.tex}
-\input{ethan.tex}
-
-\section{Team Contributions}
-For the individual sections of the project, Benton will focus on the robotic
-modeling, Ethan on the robotic controls, and Brian on the perception and
-tracking.
-However, since each part of the project will slowly feed into one another, each
-team member will help contribute to all three parts of the project equally.
+\input{introduction/introduction.tex}
+\input{theory_methods/theory_methods.tex}
+\input{experiments/experiments.tex}
+\input{results/results.tex}
+\input{discussion/discussion.tex}
 
 \end{document}
