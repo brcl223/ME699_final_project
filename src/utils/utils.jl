@@ -32,6 +32,7 @@ export Cylinder,
 
 include("controllers.jl")
 export ADPDController,
+    ADPDInertial,
     MassController,
     PDController,
     PDGCController,

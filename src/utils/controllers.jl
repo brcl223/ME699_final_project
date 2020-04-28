@@ -134,7 +134,7 @@ mutable struct ADPDController{T}
     kd::Float64
 end
 
-function ADPDController(q, q̇; θ̂=zeros(2), kp=50., kd=5., Δt=1e-3)
+function ADPDController(q, q̇; θ̂=zeros(2), kp=100., kd=100., Δt=1e-3)
     return ADPDController(q, q̇, θ̂, 1, Δt, kp, kd)
 end
 
@@ -165,16 +165,16 @@ function Y(q, q̇, q̈)
     l1 = 1;
     l2 = 1;
     g = 9.81;
-    c1 = cos(q[1]);
-    c2 = cos(q[2]);
-    c12 = cos(q[1]+q[2]);
-    s1 = sin(q[1]);
-    s2 = sin(q[2]);
-    s12 = sin(q[1]+q[2]);
+    c1 = cos(q[2]);
+    c2 = cos(q[3]);
+    c12 = cos(q[2]+q[3]);
+    s1 = sin(q[2]);
+    s2 = sin(q[3]);
+    s12 = sin(q[2]+q[3]);
 
-    Y11 = l1^2*q̈[1] + l1*g*c1;
-    Y12 = l2^2*(q̈[1]+q̈[2]) + l1*l2*c2*(2*q̈[1]+q̈[2])+l1^2*q̈[1]-l1*l2*s2*q̇[2]^2 - 2*l1*l2*s2*q̇[1]*q̇[2] + l2*g*c12 + l1*g*c1;
-    Y22 = l1*l2*c2*q̈[1] + l1*l2*s2*q̇[1]^2 + l2*g*c12 + l2^2*(q̈[1]+q̈[2]);
+    Y11 = l1^2*q̈[2] + l1*g*c1;
+    Y12 = l2^2*(q̈[2]+q̈[2]) + l1*l2*c2*(2*q̈[2]+q̈[3])+l1^2*q̈[2]-l1*l2*s2*q̇[3]^2 - 2*l1*l2*s2*q̇[2]*q̇[3] + l2*g*c12 + l1*g*c1;
+    Y22 = l1*l2*c2*q̈[2] + l1*l2*s2*q̇[2]^2 + l2*g*c12 + l2^2*(q̈[2]+q̈[3]);
     return [Y11 Y12; 0 Y22];
 end
 
@@ -209,7 +209,94 @@ function (adpd::ADPDController)(τ::AbstractVector, t, state::MechanismState)
         error("NaN during simulation.")
     end
 
-    τ .= [M̂[1:end-1,1:end-1] * q̈[1:end-1] + Y(q,q̇,q̈)*adpd.θ̂; adpd.kp.*e[end]];
-    Φ = M̂[1:end-1,1:end-1] \ Y(q,q̇,q̈)
-    adpd.θ̂ .= -Γ \ (Φ' * (B' * P * e[1:end-1]))
+    τ .= [200*e[1]+60*ė[1]; (M̂[2:end,2:end] * q̈[2:end] + Y(q,q̇,q̈)*adpd.θ̂)];
+    Φ = M̂[2:end,2:end] \ Y(q,q̇,q̈)
+    adpd.θ̂ .= -Γ \ (Φ' * (B' * P * e[2:end]))
+end
+
+# Adaptive PD Interial Based Controller
+mutable struct ADPDInertial{T}
+    q::AbstractVector{<:AbstractVector{T}}
+    q̇::AbstractVector{<:AbstractVector{T}}
+    θ̂::AbstractVector
+    i::Int64
+    Δt::Float64
+    kp::Float64
+    kd::Float64
+end
+
+function ADPDInertial(q, q̇; θ̂=zeros(2), kp=100., kd=100., Δt=1e-3)
+    return ADPDInertial(q, q̇, θ̂, 1, Δt, kp, kd)
+end
+
+function calculate_desired_values(adi::ADPDInertial, ΔT::Float64, i)
+    if i >= length(adi.q) - 1
+        pd_i = adi.q[end]
+        dim = length(pd_i)
+        return pd_i, zeros(dim), zeros(dim)
+    end
+
+    qi = adi.q[i]
+    q̇i = adi.q̇[i]
+    q_next = adi.q[i+1]
+    q̇_next = adi.q̇[i+1]
+
+    Δt = adi.Δt
+
+    qd_i = qi + (q_next - qi) * ΔT / Δt
+    q̇d_i = q̇i + (q̇_next - q̇i) * ΔT / Δt
+    q̈d_i = (q̇_next - q̇i) / Δt
+
+    return (qd_i, q̇d_i, q̈d_i)
+end
+
+# Regressor function attributed to "Robot Manipulator Control Theory and Practice",
+# Pg. 348, Example 6.3-1
+function Y(q̈d, q̇d, qd, q, q̇, Λ)
+    l1 = 1;
+    l2 = 1;
+    g = 9.81;
+    c1 = cos(q[2]);
+    c2 = cos(q[3]);
+    c12 = cos(q[2]+q[3]);
+    s1 = sin(q[2]);
+    s2 = sin(q[3]);
+    s12 = sin(q[2]+q[3]);
+
+    e = qd - q;
+    ė = q̇d - q̇;
+
+    Y11 = l1^2*(q̈d[2] + Λ[1,1]*ė[2]) + l1*g*c1;
+    Y12 = (l2^2 + 2*l1*l2*c2 + l1^2)*(q̈d[2] + Λ[1,1]*ė[2]) + (l2^2 + l1*l2*c2)*(q̈d[3] + Λ[2,2]*ė[3]) - l1*l2*s2*q̇[3]*(q̇d[2] + Λ[1,1]*e[2]) - l1*l2*s2*(q̇[2] + q̇[3])*(q̇d[3] + Λ[2,2]*e[3]) + l2*g*c12 +l1*g*c1;
+    Y22 = (l1*l2*c2 + l2^2)*(q̈d[2] + Λ[1,1]*ė[2]) + l2^2*(q̈d[3] + Λ[2,2]*ė[3]) - l1*l2*s2*q̇[2]*(q̇d[2] + Λ[1,1]*e[2]) + l2*g*c12;
+    return [Y11 Y12; 0 Y22];
+end
+
+# Control adapted from "Robot Manipulator Control Theory and Practice",
+# Pg. 347, Example 6.3-1
+function (adi::ADPDInertial)(τ::AbstractVector, t, state::MechanismState)
+
+    current_index = Integer(floor(t/adi.Δt)) + 1
+    tk = (current_index - 1) * adi.Δt
+
+    q = configuration(state);
+    q̇ = velocity(state);
+
+    ΔT = t - tk
+    q_d, q̇_d, q̈_d = calculate_desired_values(adi, ΔT, current_index)
+    e = q_d - q
+    ė = q̇_d - q̇
+
+    n = 2;
+    In = Matrix(1.0I, n,n);
+    Γ = 500 .*In;
+    Λ = 2.5 .*In;
+
+    if any(isnan,e) || any(isnan,ė)
+        error("NaN during simulation.")
+    end
+
+    Φ = Y(q̈_d, q̇_d, q_d, q, q̇, Λ);
+    τ .= [200*e[1]+60*ė[1]; -(Φ*adi.θ̂ + adi.kd*ė[2:end] + adi.kd*Λ*e[2:end])];
+    adi.θ̂ .= Γ * Φ' * (Λ*e[2:end] + ė[2:end]);
 end
