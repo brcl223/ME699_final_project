@@ -1,11 +1,6 @@
-using Flux, CuArrays
-using BSON: @save, @load
-
-export build_nn, save_nn, load_nn
-
 const LAYER_SIZE = 100
 
-function build_nn(in::Integer, out::Integer)::Chain{T} where {T}
+function build_nn(in::Integer, out::Integer)
     return Chain(
         Dense(in, LAYER_SIZE, relu),
         Dense(LAYER_SIZE, LAYER_SIZE, relu),
@@ -15,7 +10,7 @@ function build_nn(in::Integer, out::Integer)::Chain{T} where {T}
 end
 
 # Default saving model as CPU model to avoid loading issues
-function save_nn(nn::Chain{T}, filename) where {T}
+function save_nn(nn::Chain, filename)
     nn = cpu(nn)
     @save "$(filename).bson" nn
 end

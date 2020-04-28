@@ -3,6 +3,8 @@ module Utils
 using BSON: @save, @load
 using ConvexBodyProximityQueries
 using CoordinateTransformations
+using DifferentialEquations
+using Distributions
 using Flux
 using GeometryTypes: Point
 using LazySets
@@ -29,9 +31,23 @@ export Cylinder,
     apply_transform
 
 include("controllers.jl")
-export ADPDController, ADPDInertial, PDController, PDGCController, PDTracker
+export ADPDController,
+    ADPDInertial,
+    MassController,
+    PDController,
+    PDGCController,
+    PDTracker,
+    make_mass_controllers
 
 include("functional.jl")
+export gen_rand_pi,
+    sym_to_vec,
+    vec_to_sym
+
+include("kalman.jl")
+export KalmanFilter,
+    update_filter!,
+    constant_velocity_car_example
 
 include("kinematics.jl")
 export jacobian_transpose_ik!, jacobian_transpose_ik
