@@ -4,6 +4,16 @@
 *.aux
 *.auctex-auto
 *.DS_Store
+*.csv
+*.m
+*.synctex
+*.blg
+*.bcf
+*.bbl
+*.xml
+*.toc
+*.gz
+*.lof
 
 # Data and models for NN
 *.jld

@@ -39,6 +39,7 @@ new_state = jacobian_transpose_ik!(state, body, point, xd)
 @show transform(new_state, point, root_frame(mechanism))
 
 qd = copy(configuration(new_state))
+q̇d = velocity(new_state)
 zero!(state)
 
 path = rrt_star(configuration(state), qd, state, w)
@@ -65,11 +66,15 @@ end
 
 Δt = 1e-3
 adpd = ADPDController(q, q̇; Δt=Δt)
+pd = PDTracker(q, q̇; Δt=Δt)
 #adi = ADPDInertial(q, q̇; Δt=Δt)
 zero!(state)
 
 tss, qss, vss = simulate(state, 5., adpd; Δt=Δt)
 #tss, qss, vss = simulate(state, 5., adi; Δt=Δt)
+
+zero!(state)
+tpd, qpd, vpd = simulate(state, 5., pd; Δt=Δt)
 
 @show length(tss)
 @show length(qss)
@@ -88,21 +93,53 @@ open(vis, Window())
 
 setobject!(vis["traj"], ls)
 
-#MeshCatMechanisms.animate(vis, tss, qss; realtimerate = 1.)
-#sleep(5)
+MeshCatMechanisms.animate(vis, tss, qss; realtimerate = 1.)
+sleep(5)
+MeshCatMechanisms.animate(vis, tss, qss; realtimerate = 1.)
+sleep(5)
+MeshCatMechanisms.animate(vis, tpd, qpd; realtimerate = 1.)
+sleep(5)
+MeshCatMechanisms.animate(vis, tpd, qpd; realtimerate = 1.)
+sleep(5)
 
 cols = length(qd)
 rows = length(qss[:,1])
-
-@show rows
-@show cols
-
-ess = zeros(rows, cols)
+rowspd = length(qpd[:,1])
+prows = length(q)
 
 global ess = zeros(rows, cols)
+global ėss = zeros(rows, cols)
+global epd = zeros(rowspd, cols)
+global ėpd = zeros(rowspd, cols)
+global q_ss = zeros(rows, cols)
+global v_ss = zeros(rows, cols)
+global q_pd = zeros(rowspd, cols)
+global v_pd = zeros(rowspd, cols)
+global qp = zeros(prows, cols)
+global vp = zeros(prows, cols)
 for ii=1:rows
+    q_ss[ii,:] = qss[ii,:][1]
+    v_ss[ii,:] = vss[ii,:][1]
     ess[ii,:] = qd - qss[ii,:][1]
+    ėss[ii,:] = q̇d - vss[ii,:][1]
+
+    q_pd[ii,:] = qpd[ii,:][1]
+    v_pd[ii,:] = vpd[ii,:][1]
+    epd[ii,:] = qd - qpd[ii,:][1]
+    ėpd[ii,:] = q̇d - vpd[ii,:][1]
 end
 
-df = DataFrame(A=tss, B=ess[:,1], C=ess[:,2], D=ess[:,3])
-CSV.write("data.csv", df)
+
+for ii=1:prows
+    qp[ii,:] = q[ii,:][1]
+    vp[ii,:] = q̇[ii,:][1]
+end
+
+df = DataFrame(A=tss, B=ess[:,1], C=ess[:,2], D=ess[:,3], E=ėss[:,1], F=ėss[:,2], G=ėss[:,3], H=q_ss[:,1], I=q_ss[:,2], J=q_ss[:,3], K=v_ss[:,1], L=v_ss[:,2], M=v_ss[:,3])
+CSV.write("adaptSimData.csv", df)
+
+df2 = DataFrame(A=range(0,stop=5,length=length(q)), B=qp[:,1], C=qp[:,2], D=qp[:,3], E=vp[:,1], F=vp[:,2], G=vp[:,3])
+CSV.write("pathData.csv", df2)
+
+df3 = DataFrame(A=tpd, B=epd[:,1], C=epd[:,2], D=epd[:,3], E=ėpd[:,1], F=ėpd[:,2], G=ėpd[:,3], H=q_pd[:,1], I=q_pd[:,2], J=q_pd[:,3], K=v_pd[:,1], L=v_pd[:,2], M=v_pd[:,3])
+CSV.write("pdSimData.csv", df3)
