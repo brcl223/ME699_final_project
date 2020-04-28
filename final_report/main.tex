@@ -1,11 +1,99 @@
-\documentclass{article}
+\documentclass[10pt]{article}
 
 \usepackage{amssymb}
-\usepackage{amsmath}
-\usepackage[latin1]{inputenc}
-\usepackage{tikz}
+\usepackage[margin=1in,bmargin=1in,top=1in]{geometry}
+\usepackage[charter]{mathdesign}
+\usepackage{amsmath,esint}
+\usepackage{mathtools}
 \usepackage{float}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage{fancyhdr, graphicx, kantlipsum, lipsum}
+\usepackage{titling}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{abstract}
+\usepackage{wrapfig}
+\usepackage{indentfirst}
+\usepackage{textcomp}
+\usepackage{url}
+\usepackage[toc,page]{appendix}
+\usepackage{listings}
+\usepackage[style=numeric-comp,backend=biber]{biblatex}
+\usepackage{csquotes}
+\usepackage{gensymb}
+\usepackage{pdfpages}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage[labelfont=bf]{caption}
+\usepackage{siunitx}
+\usepackage{longtable}
+\usepackage{perpage}
+\usepackage{scrextend}
+\usepackage{etoolbox}
+\usepackage{ragged2e}
+\usepackage[intoc]{nomencl}
+\usepackage{tikz}
+\usepackage{adjustbox}
+\usepackage[bottom]{footmisc}
+\usepackage{bookmark}
+\usepackage{setspace}
+\usepackage{color}
+\usepackage[version=4]{mhchem}
+\usepackage{tabularx}
+\usepackage{pgfplots} %http://www.ctan.org/pkg/pgfplots
+\usepackage{pseudocode}
 \usetikzlibrary{patterns}
+
+\hypersetup{
+	colorlinks=true,
+	linkcolor=blue,
+	filecolor=magenta,      
+	urlcolor=cyan,
+	citecolor=blue,
+	bookmarksopen=true
+}
+
+% URL formatting
+\urlstyle{same}
+\def\UrlBreaks{\do\/\do-}
+
+% Table Caption formatting
+\captionsetup[table]{labelsep=space,skip=2pt,justification=raggedright,singlelinecheck=false}
+\captionsetup[figure]{font={stretch=1}}
+\sisetup{table-number-alignment=center}
+
+% Miscellaneous formatting
+\frenchspacing
+\pagestyle{fancy}
+\addbibresource{Bibliography.bib}
+\DeclareNameAlias{default}{last-first}
+\numberwithin{table}{section}
+\numberwithin{figure}{section}
+\numberwithin{equation}{section}
+\MakePerPage{footnote}
+\setlength\heavyrulewidth{0.25ex}
+\definecolor{mygreen}{RGB}{28,172,0} % color values Red, Green, Blue
+\definecolor{mylilas}{RGB}{170,55,241}
+\bookmarksetup{open,numbered}
+
+
+%Header/Footer formatting
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyhf{}
+\fancyhead{}
+
+% Additional commands
+\makeatletter
+\def\tagform@#1{\maketag@@@{[#1]\@@italiccorr}}
+\makeatother
+\makeatletter
+\newcommand*{\rom}[1]{\expandafter\@slowromancap\romannumeral #1@}
+\makeatother
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash}b{#1}}
+\DeclareUnicodeCharacter{0301}{}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -72,13 +160,57 @@
 \author{Benton Clark, Ethan Howell, Brian Moberly}
 
 \begin{document}
-\pagenumbering{gobble}
-\maketitle
+	%\pagenumbering{gobble}
+	%\maketitle
+	\thispagestyle{fancy}
+	\begin{titlepage}
+		\thispagestyle{fancy}
+		\begin{center}
+			\vspace*{2.5cm}
+			{\LARGE ME699 Final Project}\\
+			\vspace*{1.25cm}
+			\textbf{ME699 - Robotic Modeling and Control}\\
+			Department of Mechanical Engineering\\
+			University of Kentucky\\
+			Lexington, KY 40506, USA\\
+			\vspace*{0.75cm}
+			Benton Clark (\href{brcl223@g.uky.edu}{brcl223@g.uky.edu})\\
+			Ethan Howell (\href{ethan.howell@uky.edu}{ethan.howell@uky.edu})\\
+			Brian Moberly (\href{brianmoberly1@uky.edu}{brianmoberly1@uky.edu})\\
+			\vspace*{0.75cm}
+			\today
+		\end{center}
+	\end{titlepage}
+	\rhead{\rightmark}
+	%\lfoot{\today}
+	\newpage
+	\pagenumbering{roman}
+	\setcounter{page}{1}
+	\cfoot{\thepage}
+	\lhead{ME699 Final Project}
+	\renewcommand{\sectionmark}[1]{\markright{\arabic{section}.\ #1}}
+	\pagestyle{fancy}
+	\renewcommand{\headrulewidth}{2pt}
+	\renewcommand{\footrulewidth}{1pt}
+	
+	\cleardoublepage
+	\renewcommand*{\contentsname}{Table of Contents}
+	\tableofcontents
+	\newpage
+	\listoffigures
+	%\listoftables
+	\newpage
+	\pagenumbering{arabic}
+	\setcounter{page}{1}
+	\newpage
 
-\input{introduction/introduction.tex}
-\input{theory_methods/theory_methods.tex}
-\input{experiments/experiments.tex}
-\input{results/results.tex}
-\input{discussion/discussion.tex}
+	\input{introduction/introduction.tex}
+	\input{theory_methods/theory_methods.tex}
+	\input{experiments/experiments.tex}
+	\input{results/results.tex}
+	\input{discussion/discussion.tex} %Actually the conclusion
+	
+	\newpage
+	\printbibliography[heading=bibintoc,title=Works Cited]
 
 \end{document}
