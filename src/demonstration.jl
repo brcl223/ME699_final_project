@@ -38,6 +38,9 @@
 # 11) Lastly, the robot will return to its initial
 #     configuration with a trajectory tracking controller
 ##############################################################
+using Pkg
+Pkg.activate(@__DIR__)
+Pkg.instantiate()
 
 using Blink
 using ColorTypes
@@ -51,6 +54,8 @@ using MeshCatMechanisms
 using Random
 using RigidBodyDynamics
 using StaticArrays
+using DataFrames
+using CSV
 
 const D = Distributions
 const RGD = RigidBodyDynamics
@@ -95,7 +100,8 @@ Gₜ(Δt) = [0.5*Δt^2 0      0;
          0       Δt      0;
          0       0   0.5Δt^2;
          0       0      Δt]
-Hₜ = diagm(ones(6))
+#Hₜ = diagm(ones(6))
+Hₜ = Matrix(1.0I,6,6)
 σₜ = ones(6) * var(noise)
 Pₜ₀ = Diagonal(var(noise)*ones(6,6))
 
@@ -186,6 +192,9 @@ ee = Point3D(default_frame(lower_arm), 0., 0., -1.)
 new_state = jacobian_transpose_ik!(state, lower_arm, ee, xd)
 
 qd = copy(configuration(new_state))
+q̇d = velocity(new_state)
+qstart = configuration(state)
+vstart = velocity(state)
 zero!(state)
 
 
@@ -283,6 +292,7 @@ xg = Point3D(root_frame(mechanism), p̂ₑ)
 
 goal_state = jacobian_transpose_ik!(state, lower_arm, ee, xg)
 qg = copy(configuration(goal_state))
+q̇g = velocity(goal_state)
 
 set_configuration!(state, qᵢ)
 zero_velocity!(state)
@@ -360,8 +370,87 @@ tsshome, qsshome, vsshome = simulate(state, 10., pdhome; Δt=Δt)
 ##############################################################
 
 # Collect data here
+cols = length(qd)
+rss = length(qssᵢ[:,1])
+rssg = length(qssg[:,1])
+rsshome = length(qsshome[:,1])
+rtraj = length(traj_qᵢ[:,1])
+rtrajg = length(traj_qg[:,1])
+rtrajhome = length(traj_qhome[:,1])
 
+global ess = zeros(rss, cols)
+global ėss = zeros(rss, cols)
+global q_ss = zeros(rss, cols)
+global v_ss = zeros(rss, cols)
+global essg = zeros(rssg, cols)
+global ėssg = zeros(rssg, cols)
+global q_ssg = zeros(rssg, cols)
+global v_ssg = zeros(rssg, cols)
+global esshome = zeros(rsshome, cols)
+global ėsshome = zeros(rsshome, cols)
+global q_sshome = zeros(rsshome, cols)
+global v_sshome = zeros(rsshome, cols)
 
+global qp = zeros(rtraj, cols)
+global vp = zeros(rtraj, cols)
+global qgp = zeros(rtrajg, cols)
+global vgp = zeros(rtrajg, cols)
+global qgh = zeros(rtrajhome, cols)
+global vgh = zeros(rtrajhome, cols)
+
+for ii = 1:rss
+    q_ss[ii,:] = qssᵢ[ii,:][1]
+    v_ss[ii,:] = vssᵢ[ii,:][1]
+    ess[ii,:] = qd - qssᵢ[ii,:][1]
+    ėss[ii,:] = q̇d - vssᵢ[ii,:][1]
+end
+
+for ii=1:rssg
+    q_ssg[ii,:] = qssg[ii,:][1]
+    v_ssg[ii,:] = vssg[ii,:][1]
+    essg[ii,:] = qg - qssg[ii,:][1]
+    ėssg[ii,:] = q̇g - vssg[ii,:][1]
+end
+
+for ii=1:rsshome
+    q_sshome[ii,:] = qsshome[ii,:][1]
+    v_sshome[ii,:] = vsshome[ii,:][1]
+    esshome[ii,:] = qstart - qsshome[ii,:][1]
+    ėsshome[ii,:] = vstart - vsshome[ii,:][1]
+end
+
+for ii=1:rtraj
+    qp[ii,:] = traj_qᵢ[ii,:][1]
+    vp[ii,:] = traj_q̇ᵢ[ii,:][1]
+end
+
+for ii=1:rtrajg
+    qgp[ii,:] = traj_qg[ii,:][1]
+    vgp[ii,:] = traj_q̇g[ii,:][1]
+end
+
+for ii=1:rtrajhome
+    qgh[ii,:] = traj_qhome[ii,:][1]
+    vgh[ii,:] = traj_q̇home[ii,:][1]
+end
+
+df = DataFrame(A=tssᵢ, B=ess[:,1], C=ess[:,2], D=ess[:,3], E=ėss[:,1], F=ėss[:,2], G=ėss[:,3], H=q_ss[:,1], I=q_ss[:,2], J=q_ss[:,3], K=v_ss[:,1], L=v_ss[:,2], M=v_ss[:,3])
+CSV.write("home2massSim5.csv", df)
+
+df = DataFrame(A=tssg, B=essg[:,1], C=essg[:,2], D=essg[:,3], E=ėssg[:,1], F=ėssg[:,2], G=ėssg[:,3], H=q_ssg[:,1], I=q_ssg[:,2], J=q_ssg[:,3], K=v_ssg[:,1], L=v_ssg[:,2], M=v_ssg[:,3])
+CSV.write("mass2massSim5.csv", df)
+
+df = DataFrame(A=tsshome, B=esshome[:,1], C=esshome[:,2], D=esshome[:,3], E=ėsshome[:,1], F=ėsshome[:,2], G=ėsshome[:,3], H=q_sshome[:,1], I=q_sshome[:,2], J=q_sshome[:,3], K=v_sshome[:,1], L=v_sshome[:,2], M=v_sshome[:,3])
+CSV.write("mass2homeSim5.csv", df)
+
+df2 = DataFrame(A=range(0,stop=5,length=rtraj), B=qp[:,1], C=qp[:,2], D=qp[:,3], E=vp[:,1], F=vp[:,2], G=vp[:,3])
+CSV.write("home2massPath5.csv", df2)
+
+df2 = DataFrame(A=range(0,stop=5,length=rtrajg), B=qgp[:,1], C=qgp[:,2], D=qgp[:,3], E=vgp[:,1], F=vgp[:,2], G=vgp[:,3])
+CSV.write("mass2massPath5.csv", df2)
+
+df2 = DataFrame(A=range(0,stop=5,length=rtrajhome), B=qgh[:,1], C=qgh[:,2], D=qgh[:,3], E=vgh[:,1], F=vgh[:,2], G=vgh[:,3])
+CSV.write("mass2homePath5.csv", df2)
 
 
 
@@ -488,7 +577,7 @@ while true
     set_configuration!(vis, qᵢ)
     setobject!(vis["traj"], ls_traj_qg)
     setobject!(vis["qss"], ls_qssg)
-    setanimation!(vis, ball_anim)
+    setanimation!(vis.visualizer, ball_anim)
     animate(vis, tssg, qssg; realtimerate = 1.)
     sleep(5)
     set_configuration!(state, qg)

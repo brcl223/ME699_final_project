@@ -1,45 +1,94 @@
 \subsection*{Adaptive Control}
+We can simplify our system model to the following
+\begin{equation}
+	M(q)\ddot{q} + C(q,\dot{q})\dot{q} + G(q)q = Y(q,\dot{q},\ddot{q})\theta = u
+	\label{eq:system}
+\end{equation}
+where $Y(q,\dot{q},\ddot{q})$ is known as the ``regressor" function containing only state variable terms, and $\theta$ is a vector function of the unknown parameters. from Eq. \eqref{eq:system}, we can select the control law, $u$, as the following
+\begin{equation}
+	u \triangleq Y(q,\dot{q},a_{q})\hat{\theta}
+	\label{eq:controllaw}
+\end{equation}
+where $a_{q}=q_{d} - K_{p}\tilde{q} - K_{d}\dot{\tilde{q}}$ is error in the joint acceleration, and $\hat{\theta}$ is the estimated vector function of unknown parameters. Substituting into Eq. \eqref{eq:system}, we can evaluate the error dynamics as
+\begin{equation}
+	\ddot{e} + K_{d}\dot{e} + K_{p}e = \hat{M}^{-1}Y(q,\dot{q},\ddot{q})\tilde{\theta} = \Phi\tilde{\theta}
+\end{equation}
+where $\hat{M}$ is the estimation of the mass matrix, and $\tilde{\theta}$ is the error in the parameter estimation. Since we do not know the vector function, it is impossible to know the error associated with it. We do know however that as long as both $K_{d}$ and $K_{p}$ are positive definite, our error decays to zero and satisfies the following ODE.
+\begin{equation}
+	\dot{e} = Ae + B\Phi\tilde{\theta}
+\end{equation}
+In order to determine $\theta$, we resort to Lyapunov analysis with the candidate function
+\begin{equation}
+	V = e^{T}Pe + \tilde{\theta}^{T}\Gamma\tilde{\theta}
+\end{equation}
+Lyapunovs direct method yields the adaptation law which allows us to directly determine $\hat{\theta}$ for our control law given in Eq. \eqref{eq:controllaw}, which we find to be
+\begin{equation}
+	\dot{\hat{\theta}} = -\Gamma^{-1}\Phi^{T}B^{T}Pe
+	\label{eq:adaptLaw}
+\end{equation}
+Where $\Gamma$ is an arbitrary positive definite, symmetric matrix.
 	\begin{figure}[H]
 		\centering
 		\begin{tikzpicture}
 			\robotbase
 			\angann{\thetaone}{$\theta_1$}
-			\lineann[0.7]{\thetaone}{\Lone}{$L_1$}
+			\node (L1) at (0.75,0.9) [minimum width=0.5cm, minimum height=0.5cm]{$L_{1}$};
 			\link(\thetaone:\Lone);
+			\node (m1) at (2.3,1) [minimum width=0.5cm, minimum height=0.5cm]{$m_{1}$};
+			\node (m2) at (3.3,2.75)  [minimum width=0.5cm, minimum height=0.5cm]{$m_{2}$};
+			\draw [->,black,thick,domain=0:180] plot ({0.4*cos(\x)}, {0.4*sin(\x)});
+			\node (tau1) at (-0.8,0) [minimum width=0.5cm, minimum height=0.5cm]{$\tau_{1}$};
 			\joint
 			\begin{scope}[shift=(\thetaone:\Lone), rotate=\thetaone]
 				\angann{\thetatwo}{$\theta_2$}
-				\lineann[-1.5]{\thetatwo}{\Ltwo}{$L_2$}
+				\node (L2) at (0.7,0.85) [minimum width=0.5cm, minimum height=0.5cm]{$L_{2}$};
 				\link(\thetatwo:\Ltwo);
 				\joint
 				\begin{scope}[shift=(\thetatwo:\Ltwo), rotate=\thetatwo]
 					\grip
 				\end{scope}
 			\end{scope}
+			\draw [->,black,thick,domain=90:180] plot ({1.75+0.4*cos(\x)}, {1+0.4*sin(\x)});
+			\node (tau2) at (1.5, 1.6) [minimum width=0.5cm, minimum height=0.5cm]{$\tau_{2}$};
 		\end{tikzpicture}
 		\caption{2-Link Robotic Manipulator}
 		\label{fig:manip2link}
 	\end{figure}
-
-	\begin{figure}[H]
-		\centering
-		\includegraphics[width=0.7\textwidth]{figures/adpdErr.eps}
-		\label{fig:adpdErr}
-		\caption{Error Dynamics}
-	\end{figure}
-
-	\begin{figure}[H]
-		\centering
-		\includegraphics[width=0.9\textwidth]{figures/eeTraj.eps}
-		\label{fig:eeTraj}
-		\caption{End-effector trajectory}
-	\end{figure}
-
-	\begin{figure}[H]
-		\centering
-		\includegraphics[width=0.7\textwidth]{figures/eeVel.eps}
-		\label{fig:eeVel}
-		\caption{End-effector velocities}
-	\end{figure}
-
-	\autocite{lewis2003robot}
+To apply this method to our particular case, consider the 2-Link manipulator shown in Fig. \ref{fig:manip2link}. Following Example $6.2-1$ in \autocite{lewis2003robot}, the regressor function, $Y(q,\dot{q},\ddot{q})$, is given as
+\begin{equation}
+	Y(q,\dot{q},\ddot{q}) = 
+	\begin{bmatrix}
+		Y_{11} & Y_{12}\\
+		Y_{21} & Y_{22}
+	\end{bmatrix}
+\end{equation}
+\begin{align}
+	Y_{11} & = l_{1}^2\ddot{q}_{1} + l_{1}gcos(q_{1})\\[0.25cm]
+	Y_{12} & = l_{2}^2(\ddot{q}_{1}+\ddot{q}_{2}) + l_{1}l_{2}cos(q_{2})(2\ddot{q}_{1} + \ddot{q}_{2}) + l_{1}^{2}\ddot{q}_{1} - l_{1}l_{2}sin(q_{2})\dot{q}_{2}^{2} \\[0.25cm] & - 2l_{2}l_{2}sin(q_{2})\dot{q}_{1}\dot{q}_{2} + l_{2}gcos(q_{1}+q_{2}) + l_{1}gcos(q_{1})\nonumber\\[0.25cm]
+	Y_{21} & = 0\\[0.25cm]
+	Y_{22} & = l_{1}l_{2}cos(q_{2})\ddot{q}_{1} + l_{1}l_{2}sin(q_{2})\dot{q}_{1}^{2} + l_{2}gcos(q_{1}+q_{2}) + l_{2}^{2}(\ddot{q}_{1} + \ddot{q}_{2})
+\end{align}
+To complete the parameters needed for both the adaptation law, and control law, we choose the matrices $\mathbf{A}$, $\mathbf{B}$ and $\mathbf{P}$ as
+\begin{equation}
+	\mathbf{A} =
+	\begin{bmatrix}
+	0 & 1\\
+	-K_{p} & -K_{d}
+	\end{bmatrix},\qquad
+	\mathbf{B} = 
+	\begin{bmatrix}
+	0 & 0\\
+	1 & 1
+	\end{bmatrix},\qquad
+	\mathbf{P} = \frac{1}{2}
+	\begin{bmatrix}
+		(K_{p}+\frac{1}{2}K_{d}) & \frac{1}{2}\\
+		\frac{1}{2} & 1
+	\end{bmatrix}
+\end{equation}
+For simplicity, the third joint which rotates the base of the 2-Link manipulator, is controlled by a traditional PD Controller. Thus the control law for the 2-Link manipulator shown in Fig. \ref{fig:manip2link} is given as
+\begin{align}
+	\tau_{1} &= Y_{11}\hat{\theta}_{1} + Y_{12}\hat{\theta}_{2}\\[0.25cm]
+	\tau_{2} &= Y_{21}\hat{\theta}_{1} + Y_{22}\hat{\theta}_{2}\\[0.25cm]
+	\tau_{3} &= -K_{d}\dot{e} - K_{p}e
+\end{align}
