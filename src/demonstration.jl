@@ -38,9 +38,9 @@
 # 11) Lastly, the robot will return to its initial
 #     configuration with a trajectory tracking controller
 ##############################################################
-using Pkg
-Pkg.activate(@__DIR__)
-Pkg.instantiate()
+# using Pkg
+# Pkg.activate(@__DIR__)
+# Pkg.instantiate()
 
 using Blink
 using ColorTypes
@@ -117,7 +117,7 @@ sg = SVector(-0.75, -0.75, 0.5)
 # Goal state for object
 pₑ = SVector(sg[1], sg[2], sg[3] + hgₚ + rₒ)
 
-
+const SAVE_DATA = false
 
 
 
@@ -243,7 +243,6 @@ kfs = KalmanFilterState(Fₜ,Gₜ,Hₜ,σₜ,x̂₀,Pₜ₀)
 add_state!(kfs, "accel", zeros(3))
 
 pdᵢ = PDTracker(traj_qᵢ, traj_q̇ᵢ, nn, kfs; Δt=Δt)
-# pd = ADPDController(q,q̇)
 zero!(state)
 
 tssᵢ, qssᵢ, vssᵢ = simulate(state, 10., pdᵢ; Δt=Δt)
@@ -319,8 +318,7 @@ x̂₀ = combine_joint_state(configuration(state_heavy), velocity(state_heavy))
 kfs = KalmanFilterState(Fₜ,Gₜ,Hₜ,σₜ,x̂₀,Pₜ₀)
 add_state!(kfs, "accel", zeros(3))
 
-# pdg = PDTracker(traj_qg, traj_q̇g, nn, kfs; Δt=Δt)
-pdg = ADPDController(traj_qg, traj_q̇g, nn, kfs; Δt=Δt)
+pdg = ADPDController(traj_qg, traj_q̇g, kfs; Δt=Δt)
 
 tssg, qssg, vssg = simulate(state_heavy, 10., pdg; Δt=Δt)
 
@@ -369,6 +367,7 @@ tsshome, qsshome, vsshome = simulate(state, 10., pdhome; Δt=Δt)
 # Collect data from trajectories
 ##############################################################
 
+if SAVE_DATA
 # Collect data here
 cols = length(qd)
 rss = length(qssᵢ[:,1])
@@ -435,24 +434,54 @@ for ii=1:rtrajhome
 end
 
 df = DataFrame(A=tssᵢ, B=ess[:,1], C=ess[:,2], D=ess[:,3], E=ėss[:,1], F=ėss[:,2], G=ėss[:,3], H=q_ss[:,1], I=q_ss[:,2], J=q_ss[:,3], K=v_ss[:,1], L=v_ss[:,2], M=v_ss[:,3])
-CSV.write("home2massSim5.csv", df)
+CSV.write("./data/home2massSim5.csv", df)
 
 df = DataFrame(A=tssg, B=essg[:,1], C=essg[:,2], D=essg[:,3], E=ėssg[:,1], F=ėssg[:,2], G=ėssg[:,3], H=q_ssg[:,1], I=q_ssg[:,2], J=q_ssg[:,3], K=v_ssg[:,1], L=v_ssg[:,2], M=v_ssg[:,3])
-CSV.write("mass2massSim5.csv", df)
+CSV.write("./data/mass2massSim5.csv", df)
 
 df = DataFrame(A=tsshome, B=esshome[:,1], C=esshome[:,2], D=esshome[:,3], E=ėsshome[:,1], F=ėsshome[:,2], G=ėsshome[:,3], H=q_sshome[:,1], I=q_sshome[:,2], J=q_sshome[:,3], K=v_sshome[:,1], L=v_sshome[:,2], M=v_sshome[:,3])
-CSV.write("mass2homeSim5.csv", df)
+CSV.write("./data/mass2homeSim5.csv", df)
 
 df2 = DataFrame(A=range(0,stop=5,length=rtraj), B=qp[:,1], C=qp[:,2], D=qp[:,3], E=vp[:,1], F=vp[:,2], G=vp[:,3])
-CSV.write("home2massPath5.csv", df2)
+CSV.write("./data/home2massPath5.csv", df2)
 
 df2 = DataFrame(A=range(0,stop=5,length=rtrajg), B=qgp[:,1], C=qgp[:,2], D=qgp[:,3], E=vgp[:,1], F=vgp[:,2], G=vgp[:,3])
-CSV.write("mass2massPath5.csv", df2)
+CSV.write("./data/mass2massPath5.csv", df2)
 
 df2 = DataFrame(A=range(0,stop=5,length=rtrajhome), B=qgh[:,1], C=qgh[:,2], D=qgh[:,3], E=vgh[:,1], F=vgh[:,2], G=vgh[:,3])
-CSV.write("mass2homePath5.csv", df2)
+CSV.write("./data/mass2homePath5.csv", df2)
 
+# Helper function because Julia is a pain
+val_from_idx(a, i) = a[i]
+pdi_kf_error_1 = val_from_idx.(pdᵢ.kf_error[:], 1)
 
+# Grab KF Data from each run
+df_kfi = DataFrame(A=val_from_idx.(pdᵢ.kf_error,1), # q1
+                   B=val_from_idx.(pdᵢ.kf_error,2), # q2
+                   C=val_from_idx.(pdᵢ.kf_error,3), # q3
+                   D=val_from_idx.(pdᵢ.kf_error,4), # q̇1
+                   E=val_from_idx.(pdᵢ.kf_error,5), # q̇2
+                   F=val_from_idx.(pdᵢ.kf_error,6)) # q̇3
+CSV.write("./data/kf_error_initial.csv", df_kfi)
+
+df_kfg = DataFrame(A=val_from_idx.(pdg.kf_error,1), # q1
+                   B=val_from_idx.(pdg.kf_error,2), # q2
+                   C=val_from_idx.(pdg.kf_error,3), # q3
+                   D=val_from_idx.(pdg.kf_error,4), # q̇1
+                   E=val_from_idx.(pdg.kf_error,5), # q̇2
+                   F=val_from_idx.(pdg.kf_error,6)) # q̇3
+CSV.write("./data/kf_error_goal.csv", df_kfg)
+
+pdh = pdhome
+df_kfh = DataFrame(A=val_from_idx.(pdh.kf_error,1), # q1
+                   B=val_from_idx.(pdh.kf_error,2), # q2
+                   C=val_from_idx.(pdh.kf_error,3), # q3
+                   D=val_from_idx.(pdh.kf_error,4), # q̇1
+                   E=val_from_idx.(pdh.kf_error,5), # q̇2
+                   F=val_from_idx.(pdh.kf_error,6)) # q̇3
+CSV.write("./data/kf_error_home.csv", df_kfh)
+
+end
 
 ##############################################################
 # Plot the trajectories and run the animations
@@ -492,6 +521,10 @@ x_qssᵢ = SVector{3,Float64}[]
 x_qssg = SVector{3,Float64}[]
 x_qsshome = SVector{3,Float64}[]
 
+x_keqssᵢ = SVector{3,Float64}[]
+x_keqssg = SVector{3,Float64}[]
+x_keqsshome = SVector{3,Float64}[]
+
 for c in qssᵢ
     set_configuration!(state, c)
     push!(x_qssᵢ, RGD.transform(state, ee, root_frame(mechanism)).v)
@@ -507,9 +540,33 @@ for c in qsshome
     push!(x_qsshome, RGD.transform(state, ee, root_frame(mechanism)).v)
 end
 
+x_keqssᵢ_colors = RGBA{Float32}[]
+for c in pdᵢ.qr
+    set_configuration!(state, c)
+    push!(x_keqssᵢ, RGD.transform(state, ee, root_frame(mechanism)).v)
+    push!(x_keqssᵢ_colors, RGBA(0,0,1,0.8))
+end
+
+x_keqssg_colors = RGBA{Float32}[]
+for c in pdg.qr
+    set_configuration!(state, c)
+    push!(x_keqssg, RGD.transform(state, ee, root_frame(mechanism)).v)
+    push!(x_keqssg_colors, RGBA(0,0,1,0.8))
+end
+
+x_keqsshome_colors = RGBA{Float32}[]
+for c in pdhome.qr
+    set_configuration!(state, c)
+    push!(x_keqsshome, RGD.transform(state, ee, root_frame(mechanism)).v)
+    push!(x_keqsshome_colors, RGBA(0,0,1,0.8))
+end
+
 pc_qssᵢ = PointCloud(x_qssᵢ)
 pc_qssg = PointCloud(x_qssg)
 pc_qsshome = PointCloud(x_qsshome)
+pc_keqssᵢ = PointCloud(x_keqssᵢ, x_keqssᵢ_colors)
+pc_keqssg = PointCloud(x_keqssg, x_keqssg_colors)
+pc_keqsshome = PointCloud(x_keqsshome, x_keqsshome_colors)
 
 ls_qssᵢ = LineSegments(pc_qssᵢ, LineBasicMaterial(color=RGBA(1,0,0,1)))
 ls_qssg = LineSegments(pc_qssg, LineBasicMaterial(color=RGBA(1,0,0,1)))
@@ -564,27 +621,30 @@ zero!(state)
 set_configuration!(vis, configuration(state))
 setobject!(vis["mass_object"], object, MeshPhongMaterial(color=RGBA(0,0,1,1)))
 settransform!(vis["mass_object"], Translation(pₒ))
-sleep(3)
+sleep(2)
 while true
     zero!(state)
     set_configuration!(vis, configuration(state))
     setobject!(vis["traj"], ls_traj_qᵢ)
     setobject!(vis["qss"], ls_qssᵢ)
+    setobject!(vis["qss_error"], pc_keqssᵢ)
     settransform!(vis["mass_object"], Translation(pₒ))
     animate(vis, tssᵢ, qssᵢ; realtimerate = 1.)
-    sleep(5)
+    sleep(1)
     set_configuration!(state, qᵢ)
     set_configuration!(vis, qᵢ)
     setobject!(vis["traj"], ls_traj_qg)
     setobject!(vis["qss"], ls_qssg)
+    setobject!(vis["qss_error"], pc_keqssg)
     setanimation!(vis.visualizer, ball_anim)
     animate(vis, tssg, qssg; realtimerate = 1.)
-    sleep(5)
+    sleep(1)
     set_configuration!(state, qg)
     set_configuration!(vis, qg)
     setobject!(vis["traj"], ls_traj_qhome)
     setobject!(vis["qss"], ls_qsshome)
+    setobject!(vis["qss_error"], pc_keqsshome)
     settransform!(vis["mass_object"], Translation(pₑ))
     animate(vis, tsshome, qsshome; realtimerate = 1.)
-    sleep(5)
+    sleep(1)
 end

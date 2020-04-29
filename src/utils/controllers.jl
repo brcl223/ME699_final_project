@@ -73,10 +73,12 @@ mutable struct PDTracker{T}
     kd::Float64
     mass_nn::Union{Nothing,Chain}
     kfs::Union{Nothing,KalmanFilterState}
+    kf_error
+    qr
 end
 
 function PDTracker(q, q̇, nn=nothing, kfs=nothing; kp=100., kd=20., Δt=1e-3)
-    return PDTracker(q, q̇, 1, Δt, kp, kd, nn, kfs)
+    return PDTracker(q, q̇, 1, Δt, kp, kd, nn, kfs, [], [])
 end
 
 # LERP to find our desired values
@@ -136,16 +138,21 @@ function (pd::PDTracker)(τ::AbstractVector, t, state::MechanismState)
 
     if pd.kfs != nothing
         N = D.Normal(0,0.1)
-        q = q + rand(N,3)
-        q̇ = q̇ + rand(N,3)
-        z = combine_joint_state(q,q̇)
+        qr = q + rand(N,3)
+        q̇r = q̇ + rand(N,3)
+        z = combine_joint_state(qr,q̇r)
         x̂ = update_filter!(pd.kfs,
                            z,
                            get_state(pd.kfs, "accel"),
                            pd.Δt,
                            current_index)
 
-        q, q̇ = split_joint_state(x̂)
+        q_e, q̇_e = split_joint_state(x̂)
+
+        push!(pd.kf_error, vcat(q,q̇) - vcat(q_e,q̇_e))
+        push!(pd.qr, qr)
+
+        q, q̇ = (q_e, q̇_e)
     end
 
     ΔT = t - tk
@@ -182,12 +189,13 @@ mutable struct ADPDController{T}
     Δt::Float64
     kp::Float64
     kd::Float64
-    mass_nn::Union{Nothing,Chain}
     kfs::Union{Nothing,KalmanFilterState}
+    kf_error
+    qr
 end
 
-function ADPDController(q, q̇, nn=nothing, kfs=nothing; θ̂=zeros(2), kp=100., kd=100., Δt=1e-3)
-    return ADPDController(q, q̇, θ̂, 1, Δt, kp, kd, nn, kfs)
+function ADPDController(q, q̇, kfs=nothing; θ̂=zeros(2), kp=100., kd=100., Δt=1e-3)
+    return ADPDController(q, q̇, θ̂, 1, Δt, kp, kd, kfs, [], [])
 end
 
 # Regressor function attributed to "Robot Manipulator Control Theory and Practice",
@@ -221,16 +229,21 @@ function (adpd::ADPDController)(τ::AbstractVector, t, state::MechanismState)
 
     if adpd.kfs != nothing
         N = D.Normal(0,0.1)
-        q = q + rand(N,3)
-        q̇ = q̇ + rand(N,3)
-        z = combine_joint_state(q,q̇)
+        qr = q + rand(N,3)
+        q̇r = q̇ + rand(N,3)
+        z = combine_joint_state(qr,q̇r)
         x̂ = update_filter!(adpd.kfs,
                            z,
                            get_state(adpd.kfs, "accel"),
                            adpd.Δt,
                            current_index)
 
-        q, q̇ = split_joint_state(x̂)
+        q_e, q̇_e = split_joint_state(x̂)
+
+        push!(adpd.kf_error, vcat(q,q̇) - vcat(q_e,q̇_e))
+        push!(adpd.qr, copy(qr))
+
+        q, q̇ = (q_e, q̇_e)
     end
 
     ΔT = t - tk
@@ -238,11 +251,6 @@ function (adpd::ADPDController)(τ::AbstractVector, t, state::MechanismState)
     e = q_d - configuration(state)
     ė = q̇_d - velocity(state)
     q̈ = q̈_d + adpd.kp.*ė + adpd.kp.*e
-    # M̂ = if adpd.mass_nn == nothing
-    #     mass_matrix(state);
-    # else
-    #     vec_to_sym(adpd.mass_nn(q))
-    # end
     M̂ = mass_matrix(state)
 
     n = 2;
@@ -286,70 +294,4 @@ function (adpd::ADPDController)(τ::AbstractVector, t, state::MechanismState)
     τ .= [200*e[1]+60*ė[1]; (M̂[2:end,2:end] * q̈[2:end] + Y(q,q̇,q̈)*adpd.θ̂)];
     Φ = M̂[2:end,2:end] \ Y(q,q̇,q̈)
     adpd.θ̂ .= -Γ \ (Φ' * (B' * P * e[2:end]))
-end
-
-# Adaptive PD Interial Based Controller
-mutable struct ADPDInertial{T}
-    q::AbstractVector{<:AbstractVector{T}}
-    q̇::AbstractVector{<:AbstractVector{T}}
-    θ̂::AbstractVector
-    i::Int64
-    Δt::Float64
-    kp::Float64
-    kd::Float64
-end
-
-function ADPDInertial(q, q̇; θ̂=zeros(2), kp=100., kd=100., Δt=1e-3)
-    return ADPDInertial(q, q̇, θ̂, 1, Δt, kp, kd)
-end
-
-# Regressor function attributed to "Robot Manipulator Control Theory and Practice",
-# Pg. 348, Example 6.3-1
-function Y(q̈d, q̇d, qd, q, q̇, Λ)
-    l1 = 1;
-    l2 = 1;
-    g = 9.81;
-    c1 = cos(q[2]);
-    c2 = cos(q[3]);
-    c12 = cos(q[2]+q[3]);
-    s1 = sin(q[2]);
-    s2 = sin(q[3]);
-    s12 = sin(q[2]+q[3]);
-
-    e = qd - q;
-    ė = q̇d - q̇;
-
-    Y11 = l1^2*(q̈d[2] + Λ[1,1]*ė[2]) + l1*g*c1;
-    Y12 = (l2^2 + 2*l1*l2*c2 + l1^2)*(q̈d[2] + Λ[1,1]*ė[2]) + (l2^2 + l1*l2*c2)*(q̈d[3] + Λ[2,2]*ė[3]) - l1*l2*s2*q̇[3]*(q̇d[2] + Λ[1,1]*e[2]) - l1*l2*s2*(q̇[2] + q̇[3])*(q̇d[3] + Λ[2,2]*e[3]) + l2*g*c12 +l1*g*c1;
-    Y22 = (l1*l2*c2 + l2^2)*(q̈d[2] + Λ[1,1]*ė[2]) + l2^2*(q̈d[3] + Λ[2,2]*ė[3]) - l1*l2*s2*q̇[2]*(q̇d[2] + Λ[1,1]*e[2]) + l2*g*c12;
-    return [Y11 Y12; 0 Y22];
-end
-
-# Control adapted from "Robot Manipulator Control Theory and Practice",
-# Pg. 347, Example 6.3-1
-function (adi::ADPDInertial)(τ::AbstractVector, t, state::MechanismState)
-
-    current_index = Integer(floor(t/adi.Δt)) + 1
-    tk = (current_index - 1) * adi.Δt
-
-    q = configuration(state);
-    q̇ = velocity(state);
-
-    ΔT = t - tk
-    q_d, q̇_d, q̈_d = calculate_desired_values(adi.q, adi.q̇, adi.Δt, ΔT, current_index)
-    e = q_d - q
-    ė = q̇_d - q̇
-
-    n = 2;
-    In = Matrix(1.0I, n,n);
-    Γ = 500 .*In;
-    Λ = 2.5 .*In;
-
-    if any(isnan,e) || any(isnan,ė)
-        error("NaN during simulation.")
-    end
-
-    Φ = Y(q̈_d, q̇_d, q_d, q, q̇, Λ);
-    τ .= [200*e[1]+60*ė[1]; -(Φ*adi.θ̂ + adi.kd*ė[2:end] + adi.kd*Λ*e[2:end])];
-    adi.θ̂ .= Γ * Φ' * (Λ*e[2:end] + ė[2:end]);
 end
