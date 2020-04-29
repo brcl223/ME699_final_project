@@ -29,10 +29,11 @@ After completing the motion, the camera makes a measurement update:
 \begin{equation}
     \Sigma_{t+1}=(I-KC)\Sigma_t^{pred}
 \end{equation}
-\\
 \subsection*{Implementation}
-Since the camera is attached to the end-effector, the measurements from the camera are made from the frame of the end-effector.  Since the system explores $\R^{3x3}$, the Kalman Filter is created to handle three-dimensional space, ignoring orientations.  So, the robot $r$ and any landmark $L$ \in $\R^{3x3}$.  The state is therefore a vector consisting of the robot and landmark x-y-z coordinates:
+Since the camera is attached to the end-effector, the measurements from the camera are made from the frame of the end-effector.  Since the system explores $\mathbb{R}^{3\times3}$, the Kalman Filter is created to handle three-dimensional space, ignoring orientations.  So, the robot $r$ and any landmark $L$ $\in\mathbb{R}^{3\times3}$.  The state is therefore a vector consisting of the robot and landmark x-y-z coordinates:
 \begin{equation}
-    x=[x_r;y_r;z_r;...;L_{xi};L_{yi};L_{zi}] for i landmarks.
+    x=\begin{bmatrix} x_r\\y_r\\z_r\\...\\L_{xi}\\L_{yi}\\L_{zi} \end{bmatrix}
 \end{equation}
+for i landmarks.
+\\
 Matrices A and B contain only non-zero elements on the main diagonal with entries of 1.  Matrix A has size $(3+3i)x(3+3i)$ and Matrix B is of size $(3+3i)x3$.  The matrix C describes the measurement as the distance between the landmark and the robot.  C is of size $(3i)x(3i+3)$.  The non-zero entries lie on the diagonals, with -1 entered on the corresponding robot state and 1 entered on the corresponding landmark state.
