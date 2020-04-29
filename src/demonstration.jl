@@ -209,6 +209,7 @@ zero!(state)
 ##############################################################
 printstyled("PHASE 4: Building waypoint tree...\n"; bold=true, color=:magenta)
 
+set_configuration!(state, pₒ)
 path = rrt_star(configuration(state), qd, state, w)
 
 
@@ -242,8 +243,8 @@ x̂₀ = zeros(6)
 kfs = KalmanFilterState(Fₜ,Gₜ,Hₜ,σₜ,x̂₀,Pₜ₀)
 add_state!(kfs, "accel", zeros(3))
 
-pdᵢ = PDTracker(traj_qᵢ, traj_q̇ᵢ, nn, kfs; Δt=Δt)
-# pd = ADPDController(q,q̇)
+#pdᵢ = PDTracker(traj_qᵢ, traj_q̇ᵢ, nn, kfs; Δt=Δt)
+pdᵢ = ADPDController(traj_qᵢ, traj_q̇ᵢ, nn, kfs; Δt=Δt)
 zero!(state)
 
 tssᵢ, qssᵢ, vssᵢ = simulate(state, 10., pdᵢ; Δt=Δt)
@@ -355,7 +356,8 @@ x̂₀ = combine_joint_state(configuration(state), velocity(state))
 kfs = KalmanFilterState(Fₜ,Gₜ,Hₜ,σₜ,x̂₀,Pₜ₀)
 add_state!(kfs, "accel", zeros(3))
 
-pdhome = PDTracker(traj_qhome, traj_q̇home, nn, kfs; Δt=Δt)
+#pdhome = PDTracker(traj_qhome, traj_q̇home, nn, kfs; Δt=Δt)
+pdhome = ADPDController(traj_qhome, traj_q̇home, nn, kfs; Δt=Δt)
 
 tsshome, qsshome, vsshome = simulate(state, 10., pdhome; Δt=Δt)
 
@@ -435,22 +437,22 @@ for ii=1:rtrajhome
 end
 
 df = DataFrame(A=tssᵢ, B=ess[:,1], C=ess[:,2], D=ess[:,3], E=ėss[:,1], F=ėss[:,2], G=ėss[:,3], H=q_ss[:,1], I=q_ss[:,2], J=q_ss[:,3], K=v_ss[:,1], L=v_ss[:,2], M=v_ss[:,3])
-CSV.write("home2massSim5.csv", df)
+CSV.write("home2massSim10APD.csv", df)
 
 df = DataFrame(A=tssg, B=essg[:,1], C=essg[:,2], D=essg[:,3], E=ėssg[:,1], F=ėssg[:,2], G=ėssg[:,3], H=q_ssg[:,1], I=q_ssg[:,2], J=q_ssg[:,3], K=v_ssg[:,1], L=v_ssg[:,2], M=v_ssg[:,3])
-CSV.write("mass2massSim5.csv", df)
+CSV.write("mass2massSim10APD.csv", df)
 
 df = DataFrame(A=tsshome, B=esshome[:,1], C=esshome[:,2], D=esshome[:,3], E=ėsshome[:,1], F=ėsshome[:,2], G=ėsshome[:,3], H=q_sshome[:,1], I=q_sshome[:,2], J=q_sshome[:,3], K=v_sshome[:,1], L=v_sshome[:,2], M=v_sshome[:,3])
-CSV.write("mass2homeSim5.csv", df)
+CSV.write("mass2homeSim10APD.csv", df)
 
 df2 = DataFrame(A=range(0,stop=5,length=rtraj), B=qp[:,1], C=qp[:,2], D=qp[:,3], E=vp[:,1], F=vp[:,2], G=vp[:,3])
-CSV.write("home2massPath5.csv", df2)
+CSV.write("home2massPath10APD.csv", df2)
 
 df2 = DataFrame(A=range(0,stop=5,length=rtrajg), B=qgp[:,1], C=qgp[:,2], D=qgp[:,3], E=vgp[:,1], F=vgp[:,2], G=vgp[:,3])
-CSV.write("mass2massPath5.csv", df2)
+CSV.write("mass2massPath10APD.csv", df2)
 
 df2 = DataFrame(A=range(0,stop=5,length=rtrajhome), B=qgh[:,1], C=qgh[:,2], D=qgh[:,3], E=vgh[:,1], F=vgh[:,2], G=vgh[:,3])
-CSV.write("mass2homePath5.csv", df2)
+CSV.write("mass2homePath10APD.csv", df2)
 
 
 

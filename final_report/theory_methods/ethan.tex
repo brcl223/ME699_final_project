@@ -6,14 +6,14 @@ We can simplify our system model to the following
 \end{equation}
 where $Y(q,\dot{q},\ddot{q})$ is known as the ``regressor" function containing only state variable terms, and $\theta$ is a vector function of the unknown parameters. from Eq. \eqref{eq:system}, we can select the control law, $u$, as the following
 \begin{equation}
-	u \triangleq Y(q,\dot{q},a_{q})\hat{\theta}
+	u \triangleq \hat{M}(q)(\ddot{e} + K_{d}\dot{e} + K_{p}e) + Y(q,\dot{q},\ddot{e})\hat{\theta}
 	\label{eq:controllaw}
 \end{equation}
-where $a_{q}=q_{d} - K_{p}\tilde{q} - K_{d}\dot{\tilde{q}}$ is error in the joint acceleration, and $\hat{\theta}$ is the estimated vector function of unknown parameters. Substituting into Eq. \eqref{eq:system}, we can evaluate the error dynamics as
+where $\hat{M}$ is the estimation of the mass matrix, $\ddot{e}=\ddot{q}_{d} - K_{p}\tilde{q} - K_{d}\dot{\tilde{q}}$ is error in the joint acceleration, and $\hat{\theta}$ is the estimated vector function of unknown parameters. Substituting into Eq. \eqref{eq:system}, we can evaluate the error dynamics as
 \begin{equation}
 	\ddot{e} + K_{d}\dot{e} + K_{p}e = \hat{M}^{-1}Y(q,\dot{q},\ddot{q})\tilde{\theta} = \Phi\tilde{\theta}
 \end{equation}
-where $\hat{M}$ is the estimation of the mass matrix, and $\tilde{\theta}$ is the error in the parameter estimation. Since we do not know the vector function, it is impossible to know the error associated with it. We do know however that as long as both $K_{d}$ and $K_{p}$ are positive definite, our error decays to zero and satisfies the following ODE.
+where $\tilde{\theta}$ is the error in the parameter estimation. Since we do not know the vector function, it is impossible to know the error associated with it. We do know however that as long as both $K_{d}$ and $K_{p}$ are positive definite, our error decays to zero and satisfies the following ODE.
 \begin{equation}
 	\dot{e} = Ae + B\Phi\tilde{\theta}
 \end{equation}
