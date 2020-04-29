@@ -209,6 +209,7 @@ zero!(state)
 ##############################################################
 printstyled("PHASE 4: Building waypoint tree...\n"; bold=true, color=:magenta)
 
+set_configuration!(state, pₒ)
 path = rrt_star(configuration(state), qd, state, w)
 
 
@@ -242,7 +243,8 @@ x̂₀ = zeros(6)
 kfs = KalmanFilterState(Fₜ,Gₜ,Hₜ,σₜ,x̂₀,Pₜ₀)
 add_state!(kfs, "accel", zeros(3))
 
-pdᵢ = PDTracker(traj_qᵢ, traj_q̇ᵢ, nn, kfs; Δt=Δt)
+#pdᵢ = PDTracker(traj_qᵢ, traj_q̇ᵢ, nn, kfs; Δt=Δt)
+pdᵢ = ADPDController(traj_qᵢ, traj_q̇ᵢ, kfs; Δt=Δt)
 zero!(state)
 
 tssᵢ, qssᵢ, vssᵢ = simulate(state, 10., pdᵢ; Δt=Δt)
@@ -353,7 +355,8 @@ x̂₀ = combine_joint_state(configuration(state), velocity(state))
 kfs = KalmanFilterState(Fₜ,Gₜ,Hₜ,σₜ,x̂₀,Pₜ₀)
 add_state!(kfs, "accel", zeros(3))
 
-pdhome = PDTracker(traj_qhome, traj_q̇home, nn, kfs; Δt=Δt)
+#pdhome = PDTracker(traj_qhome, traj_q̇home, nn, kfs; Δt=Δt)
+pdhome = ADPDController(traj_qhome, traj_q̇home, kfs; Δt=Δt)
 
 tsshome, qsshome, vsshome = simulate(state, 10., pdhome; Δt=Δt)
 
