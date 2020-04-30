@@ -14,17 +14,20 @@ With this control fully implemented, we then move to the full simulation of the 
 	\caption{End-effector trajectory with adaptive control}
 	\label{fig:nntrajapd}
 \end{figure}
-We can see from Fig. \ref{fig:nntrajapd} that our initial error results in a false start position, however this error quickly decreases to zero as expected, and the trajectory is followed very tightly for the remainder of the simulation. We then look at a strict PD model, to observe the effects that an increase in mass has on the control.
+\noindent We can see from Fig. \ref{fig:nntrajapd} that our initial error results in a false start position, however this error quickly decreases to zero as expected, and the trajectory is followed very tightly for the remainder of the simulation.
+
+We then look at a mass estimated PD model, to observe the effects that an increase in mass has on the control.
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\textwidth]{figures/mass10NNerrPD.eps}
-	\caption{PD controller error in full simulation}
+	\caption{Mass estimated PD controller error in full simulation}
 	\label{fig:nnerrpd}
 \end{figure}
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\textwidth]{figures/mass10NNeetrajPD.eps}
-	\caption{End-effector trajectory with PD control}
+	\caption{End-effector trajectory with mass estimated PD control}
 	\label{fig:nntrajpd}
 \end{figure}
-In contrast to the adaptive model, the PD controller places the end-effector in the desired start position. However, we can easily see from Fig. \ref{fig:nntrajpd} that the PD control is not able to follow the desired trajectory as closely, and once the mass is picked up this issue worsens.
+\noindent In contrast to the adaptive model, the mass estimated PD controller places the end-effector in the desired start position.
+However, we can easily see from Fig. \ref{fig:nntrajpd} that the PD control is not able to follow the desired trajectory as closely, and once the mass is picked up this issue worsens.

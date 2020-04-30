@@ -7,18 +7,18 @@ In addition, the loss metrics of the mass neural network during training will be
 \subsection*{Controls Experiment}
 Both the adaptive control and the mass matrix neural network control were tested against each other in the three different phases.
 These phases consisted of the initial trajectory towards the target object, moving the object of unknown mass to the goal state, and finally returning to the original position the arm started in.
-Both of these methods were compared to a baseline of a standard PD trajectory tracking controller as well, to serve as a baseline for performance.
 The metric for these experiments was the error in tracked trajectory for both joint configurations and velocities under control.
 
 \subsubsection*{Mass Experiment}
 The adaptive control was also tested multiple times in the second phase (moving the object of unknown mass) where the mass was varied.
-The performance under differing weights was of particular interest.
+The performance of the controller considering additional weight being added was of particular interest.
 The metric for this experiment was the error in tracked trajectory for the three joint configurations and velocities during the control.
+The experiment was run with an additional 10kg object attached to the end effector.
 
 \subsection*{Kalman Filter Experiment}
-To measure the effectiveness of the Kalman filter, both the stationary and moving filter results were examined.
-The error in actual position (known due to simulation) versus predicted position was used as the metric.
-If effectively implemented, the error in predicted position should begin to converge towards the actual position as more samples are acquired and the confidence of the filter increases.
+To measure the effectiveness of the Kalman filter, both the filter results while predicting the moving joint configurations and velocities were examined.
+The error in actual positions and velocities (known due to simulation) versus predicted positions and velocities was used as the metric.
+If effectively implemented, the error in predicted state should begin to converge towards the actual state as more samples are acquired and the confidence of the filter increases.
 
 The experiments will use white noise samples from the Gaussian distribution $n\sim \mathcal{N}(0,0.1)$.
 This variance provides enough noise to show the filter working effectively, but not so much that it cannot provide accurate estimates within the short time span of the trajectory.
