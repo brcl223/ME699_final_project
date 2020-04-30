@@ -6,13 +6,13 @@ One thing to note here was that Julia's RigidBodyDynamics package did not seem t
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.8\textwidth]{figures/massnnloss_plot.png}
+  \includegraphics[width=0.8\textwidth]{figures/massnnloss_plot.eps}
   \caption{Mass Neural Network Cross Validation Loss Metrics}
   \label{fig:massnnloss}
 \end{figure}
 
 \subsection*{Kalman Filter}
-Figures \ref{fig:kferror-initial} - \ref{fig:kferror-home} show the results of the Kalman filter when estimating the true position of the arm while moving through a trajectory.
+Figure \ref{fig:kferror} shows the results of the Kalman filter when estimating the true position of the arm while moving through a trajectory.
 All in all the results show about what is expected --- as more data samples are provided to the filter, the estimations improve.
 One interesting note is the performance difference with and without the additional weight.
 The margins of error are significantly smaller for the initial and home-bound trajectories than for the goal-bound trajectory when additional weight was present.
@@ -27,21 +27,7 @@ Even with these spikes, the error quickly settles, and still begins to converge.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.8\textwidth]{figures/kf_error_initial.png}
+  \includegraphics[width=\textwidth]{figures/kf_error.eps}
   \caption{Kalman filter prediction error during initial trajectory --- joint configurations and velocities.}
-  \label{fig:kferror-initial}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.8\textwidth]{figures/kf_error_goal.png}
-  \caption{Kalman filter prediction error during goal-bound trajectory --- joint configurations and velocities.}
-  \label{fig:kferror-goal}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.8\textwidth]{figures/kf_error_home.png}
-  \caption{Kalman filter prediction error during home-bound trajectory --- joint configurations and velocities.}
-  \label{fig:kferror-home}
+  \label{fig:kferror}
 \end{figure}
