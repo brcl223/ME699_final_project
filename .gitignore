@@ -3,7 +3,7 @@
 *.aux
 *.auctex-auto
 *.DS_Store
-# *.csv
+*.csv
 *.m
 *.synctex
 *.blg
