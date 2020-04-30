@@ -1,3 +1,5 @@
+# Attribution: RigidBodyDynamics sample code
+# Tutorials, Section 4 "Jacobian IK and Control"
 function jacobian_transpose_ik!(state::MechanismState,
                                body::RigidBody,
                                point::Point3D,
@@ -26,14 +28,4 @@ function jacobian_transpose_ik!(state::MechanismState,
         set_configuration!(state, q)
     end
     state
-end
-
-function jacobian_transpose_ik(state::MechanismState,
-                               body::RigidBody,
-                               point::Point3D,
-                               desired::Point3D;
-                               α=0.1,
-                               iterations=100)
-    state = copy(state)
-    return jacobian_transpose_ik!(state, body, point, desired; α=α, iterations=iterations)
 end

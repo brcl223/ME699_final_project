@@ -1,5 +1,3 @@
-# TODO: Attribute controller code
-
 function gen_rand_pi(dim)
     return 2*pi .* rand(dim)
 end
@@ -129,6 +127,8 @@ function split_joint_state(x̂::AbstractVector)
     return (q, q̇)
 end
 
+# PD Tracking algorithm attributed to "Robot Manipulator Control Theory and Practice",
+# Pg. 204, Table 4.4.1
 function (pd::PDTracker)(τ::AbstractVector, t, state::MechanismState)
     current_index = Integer(floor(t/pd.Δt)) + 1
     tk = (current_index - 1) * pd.Δt

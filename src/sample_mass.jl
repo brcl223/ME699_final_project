@@ -36,7 +36,7 @@ function main()
             set_configuration!(state, qd)
             zero_velocity!(state)
             ts, _, vs = simulate(state, 2*Δt, mc; Δt=Δt)
-            # vs[1] and ts[1] are 0
+            # vs[2] and ts[2] are 0
             # Use the first non-zero state to calculate
             # numerical value of δv/δt
             Q̈[i,:] .= vs[2] ./ ts[2]
@@ -45,20 +45,6 @@ function main()
         qpos = hcat(qpos, qd)
         mm = λ*inv(Q̈)
         q̈s = hcat(q̈s, sym_to_vec(mm))
-
-        # Q̈ = zeros(Float64, (3,3))
-        # qd = gen_rand_pi(dim)
-        # for i = 1:dim
-        #     set_configuration!(state, qd)
-        #     τ = dynamics_bias(state)
-        #     τ[i] += λ
-        #     dynamics!(dr, state, τ)
-        #     Q̈[:,i] .= dr.v̇
-        # end
-
-        # # Reset state one more time just in case
-        # set_configuration!(state, qd)
-
     end
 
     save("./data/mass_points.jld", "qpos", qpos, "qddot", q̈s)

@@ -1,5 +1,5 @@
-# function plan_trajectory(qs::Array{SVector{N,Float64}};
-#                          q̇_max=1, Δt=1e-3, ϵ=1e-4, max_step_size=20) where N
+# Trajectory Planning algorithm modified from "Robot Manipulator Control Theory and Practice",
+# Section 4.2 "Path Generation"
 function plan_trajectory(qs::AbstractVector{<:AbstractVector{T}};
                          q̇_max=1, Δt=1e-3, ϵ=1e-4, max_step_size=20) where T
     # Initial and final velocities should be 0
