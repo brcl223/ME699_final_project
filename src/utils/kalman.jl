@@ -1,5 +1,6 @@
 # Attribution for equations:
 # https://www.kalmanfilter.net/default.aspx
+# Specifically the section "Multidimensional Kalman Filter"
 
 mutable struct KalmanFilter
     x̂::AbstractVector

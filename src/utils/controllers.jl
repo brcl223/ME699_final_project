@@ -1,5 +1,3 @@
-# TODO: Attribute controller code
-
 function gen_rand_pi(dim)
     return 2*pi .* rand(dim)
 end
@@ -48,21 +46,6 @@ function (pd::PDController)(τ::AbstractVector, t, state::MechanismState)
     pd.τ = copy(τ)
 end
 
-
-# Gravity Compensated PD Controller
-mutable struct PDGCController{T<:Tuple}
-    qd::AbstractVector
-    τ::AbstractVector
-    nn::Chain{T}
-end
-
-PDGCController(dim::Integer, qd::AbstractVector) = PDGCController(qd, zeros(dim), load_nn("./models/gravity_nn"))
-PDGCController(dim::Integer) = PDGCController(dim, gen_rand_pi(dim))
-
-function (pd::PDGCController)(τ::AbstractVector, t, state::MechanismState)
-    qcur = configuration(state)
-    τ .= -30 .* velocity(state) - 100 * (qcur - pd.qd) + pd.nn(qcur)
-end
 
 mutable struct PDTracker{T}
     q::AbstractVector{<:AbstractVector{T}}
@@ -129,6 +112,8 @@ function split_joint_state(x̂::AbstractVector)
     return (q, q̇)
 end
 
+# PD Tracking algorithm attributed to "Robot Manipulator Control Theory and Practice",
+# Pg. 204, Table 4.4.1
 function (pd::PDTracker)(τ::AbstractVector, t, state::MechanismState)
     current_index = Integer(floor(t/pd.Δt)) + 1
     tk = (current_index - 1) * pd.Δt

@@ -41,10 +41,8 @@ function main()
 
     val_qpos = q_train[:,1:100]
     val_qddot = qddot_train[:,1:100]
-    # evalcb() = @show(loss(val_qpos, val_qddot))
 
-    # train!(loss, ps, ncycle(train_loader, 5), opt, cb=evalcb)
-
+    # Attribution: Flux documentation, Custom Training Loop
     function custom_train!(loss, ps, data, opt)
         tloss = []
         vloss = []
@@ -70,10 +68,13 @@ function main()
         return (tloss, vloss, dloss)
     end
 
+    # Collect our loss metrics
     tloss, vloss, dloss = custom_train!(loss, ps, ncycle(train_loader, 5), opt)
     df = DataFrame(A=tloss, B=vloss, C=dloss)
     CSV.write("./data/mass_nn_loss.csv", df)
-    # save_nn(nn, "./models/mass_nn")
+
+    # Finally, save our neural network
+    save_nn(nn, "./models/mass_nn")
 end
 
 main()

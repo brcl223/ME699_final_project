@@ -7,7 +7,7 @@ The motion of the system is described by the following uncertainty model:
   x_{t+1} = \mathbf{A} x_t + \mathbf{B} u_t + v_t,
 \end{equation}
 
-where $\mathbf{A}\in\mathbb{R}^{n\times n}$ is the transition matrix of the dynamic system, $\mathbf{B}\in\mathbb{R}^{n\times m}$ is the control matrix for the inputs, $x_{t}\in\mathbb{R}^{n}$ is the current estimate of the state, $u_{t}\in\mathbb{R}^{m}$ is the current input to the system, and $v_t$ is a Gaussian noise variable pertaining to the uncertainty in the system behavior.
+\noindent where $\mathbf{A}\in\mathbb{R}^{n\times n}$ is the transition matrix of the dynamic system, $\mathbf{B}\in\mathbb{R}^{n\times m}$ is the control matrix for the inputs, $x_{t}\in\mathbb{R}^{n}$ is the current estimate of the state, $u_{t}\in\mathbb{R}^{m}$ is the current input to the system, and $v_t$ is a Gaussian noise variable pertaining to the uncertainty in the system behavior.
 
 The measurement taken in by the filter follows the uncertainty model
 \begin{equation}

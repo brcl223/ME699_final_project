@@ -52,7 +52,6 @@ function check_collisions(w::World,
     return false
 end
 
-# TODO: Allow for wrapping around -2pi to 2pi
 function rrt_star(initial::AbstractArray,
                   final::AbstractArray,
                   state::MechanismState,
