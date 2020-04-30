@@ -38,9 +38,9 @@
 # 11) Lastly, the robot will return to its initial
 #     configuration with a trajectory tracking controller
 ##############################################################
-# using Pkg
-# Pkg.activate(@__DIR__)
-# Pkg.instantiate()
+using Pkg
+Pkg.activate(@__DIR__)
+Pkg.instantiate()
 
 using Blink
 using ColorTypes
