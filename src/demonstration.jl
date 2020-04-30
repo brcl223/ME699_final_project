@@ -107,13 +107,15 @@ Pₜ₀ = Diagonal(var(noise)*ones(6,6))
 
 # Start platform for object
 hsₚ = 0.2
-sᵢ = SVector(1.5, 0, -0.2)
+#sᵢ = SVector(1.5, 0, -0.2)
+sᵢ = SVector(1.5, 0, -0.5)
 # Start state for the object
 rₒ = 0.1
 pₒ = SVector(sᵢ[1], sᵢ[2], hsₚ + sᵢ[3] + rₒ)
 # Goal platform for object
 hgₚ = 0.2
-sg = SVector(-0.75, -0.75, 0.5)
+#sg = SVector(-0.75, -0.75, 0.5)
+sg = SVector(-0.75, -0.75, 0.1)
 # Goal state for object
 pₑ = SVector(sg[1], sg[2], sg[3] + hgₚ + rₒ)
 

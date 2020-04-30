@@ -10,7 +10,7 @@ The general equation of motion for a robotic manipulator can be expressed as:
 \noindent where $M(q)\in\mathbb{R}^{n\times n}$ is the mass matrix of the joints,
 $C(q,\dot{q})\in\mathbb{R}^{n\times n}$ is the Coriolis matrix,
 $G(q)\in\mathbb{R}^{n}$ is the conservative force vector acted on the arm by
-gravity, and $\tau\in\mathbb{R}^{n}$ are the torques commanded to each joint \cite{spong}.
+gravity, and $\tau\in\mathbb{R}^{n}$ are the torques commanded to each joint \cite{spong}
 Each of the terms on the left hand side of the equation can be directly modeled
 when the manipulator joint information is known.
 However, when this information is not available, a neural network can be used to
