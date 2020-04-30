@@ -1,89 +1,10 @@
-\section{Robotic Modeling}
-\subsection{Approach}
+\subsection*{Mass Matrix Modeling}
+While we could not simulate the robot in a frictional environment, the results from our learned mass matrix were quite promising.
+It should be noted that while there was no friction involved, the system was still simulated to acquire the acceleration values to test against.
+Even though small errors were present in the findings, the controller using the estimated mass matrix still performed quite competitively compared to those with accurate knowledge of the mass matrix.
+It will be interesting to see if this approach is possible on a real robot system with various levels of friction.
 
-The general equation of motion for a robotic manipulator can be expressed as:
-
-\begin{equation}
-  \label{eom-manipulator}
-  M(q)\ddot{q} + C(q,\dot{q})\dot{q} + G(g) = \tau
-\end{equation}
-
-\noindent where $M(q)\in\mathbb{R}^{n\times n}$ is the mass matrix of the joints,
-$C(q,\dot{q})\in\mathbb{R}^{n\times n}$ is the Coriolis matrix,
-$G(q)\in\mathbb{R}^{n}$ is the conservative force vector acted on the arm by
-gravity, and $\tau\in\mathbb{R}^{n}$ are the torques commanded to each joint.
-Each of the terms on the left hand side of the equation can be directly modeled
-when the manipulator joint information is known.
-However, when this information is not available, a neural network can be used to
-estimate the value of these matrices.
-
-To model the conservative force vector, a robotic manipulator can be controlled
-with a simple PD controller and brought to a stop at a given configuration value
-$q$.
-When the manipulator is at rest, Eq. (\ref{eom-manipulator}) simplifies to:
-
-\begin{align}
-  \label{eom-manipulator-stopped}
-  M(q)*0 + C(q,0)*0 + G(q) &= \tau\\
-  G(q) &= \tau
-\end{align}
-
-\noindent which allows the loss function for the function approximator
-$\hat{G}(q)$ to be expressed as:
-
-\begin{equation}
-  \label{loss-function-gq}
-  \hat{G}(q) - \tau = \delta_{Loss}
-\end{equation}
-
-To model the mass matrix with a function approximator $\hat{M}(q)$, we must
-again model a loss function to train the network.
-This proves more difficult, as the mass matrix must be isolated on the left hand
-side of the equation.
-However, if the number of acceleration samples taken at a given configuration
-$q$ satisfy $rk(M(q)) = n_{samples}$, we could then construct an acceleration
-matrix $\ddot{Q} = [\ddot{q_{1}}, \ddot{q_{2}}\dots\ddot{q_{n}}]$ which
-satisfies $rk(\ddot{Q}) = rk(M(q)) = n$.
-Properties of linear algebra now guarantee that a unique inverse of this matrix
-must exist, and the equation can then be expressed as:
-
-\begin{align}
-  \label{eom-manipulator-accel}
-  M(q)\ddot{Q} + C(q,\dot{Q})\dot{Q} + G(Q) &= \mathrm{T}\\
-  \label{eom-manipulator-accel-m}
-  M(q) &= \ddot{Q}^{-1}(\mathrm{T} - G(Q) - C(q,\dot{Q})\dot{Q})
-\end{align}
-
-\noindent where $G(Q)\in\mathbb{R}^{n\times n}$ is a one dimensional matrix
-where each column satisfies $G_{i}(Q) = G(q)$.
-
-The problem with this method is that the Coriolis term is still in place, and we
-have no estimate for this value.
-However, if we take our $\ddot{q}$ samples at the initial point when we first
-begin accelerating, we should see that $\dot{q} \approx 0$, and thus Eq.
-(\ref{eom-manipulator-accel-m}) can be expressed as:
-
-\begin{align}
-  M(q) = \ddot{Q}^{-1}(\mathrm{T} - G(Q))
-\end{align}
-
-\noindent which now allows for a loss function to be formulated.
-
-For the Coriolis matrix, it directly depends on the mass matrix $M(q)$, and thus
-once an estimate for $M(q)$ is formulated, the Coriolis matrix can be derived
-from the given values of the $\hat{M}(q)$ matrix.
-
-\subsection{Experiments}
-The experiments for this section will include learning both $\hat{G}(q)$ and
-$\hat{M}(q)$ using the proposed method above in two settings: One in a friction
-free environment, and another when static friction is present.
-The friction free case will be used primarily as a base case, and the accuracy
-of both the $\hat{G}(q)$ and $\hat{M}(q)$ will be compared to their true values.
-This will serve to see how effective this method is in general, as
-friction begins complicating the process.
-
-The frictional case will be further broken down into two sections.
-The first will consist of learning the two maps without static friction
-compensation, and the second will include static friction compensation.
-Static friction will be modeled as a constant $\mu_{s}$, so this can easily be
-added into the above formulations (primarily for the mass matrix case).
+\subsection*{Kalman Filter}
+The Kalman filter in the experiments worked quite well.
+Even with fairly high variance in the sampled noise, the filter seemed to converge decently, with better results when the additional mass was not present.
+Given longer trajectories, it would be expected that these values could have dropped even lower, which is a good sign that the Kalman filter is effectively reducing the noise from the given samples.

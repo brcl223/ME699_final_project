@@ -1,4 +1,13 @@
 \subsection*{Accounting for unknown parameters}
-With the goal of picking up an object of unknown mass, this introduces an unknown parameter to the overall system. The effect of this unknown paramter propagates throughout the dynamics of the system throughout its interaction. In order to account for this term, we look to the field of adaptive control. Classical control systems assume that the system dynamics are either known, or able to be approximated. Because of this assumption, there is a shortfall with classical methods when unknown parameters are introduced to the system. Similarly to classical control, adaptive control requires that we pick a control law, often chosen to cancel out the undesirable terms associated with the dynamics, which gives us the ability to select gains to change how the system behaves. In addition to this, we must also select an adaptation law, which allows our control to morph to the evolving conditions at hand. Using this methodology, we are then able to design our control in such a way that we can stabilize the system and achieve desired states.\\
+With the goal of picking up an object of unknown mass, this introduces an unknown parameter to the overall system.
+The effect of this unknown parameter propagates throughout the dynamics of the system throughout its interaction.
+In order to account for this term, we look to the field of adaptive control.
+Classical control systems assume that the system dynamics are either known, or able to be approximated.
+Because of this assumption, there is a shortfall with classical methods when unknown parameters are introduced to the system.
+Similarly to classical control, adaptive control requires that we pick a control law, often chosen to cancel out the undesirable terms associated with the dynamics, which gives us the ability to select gains to change how the system behaves.
+In addition to this, we must also select an adaptation law, which allows our control to morph to the evolving conditions at hand.
+Using this methodology, we are then able to design our control in such a way that we can stabilize the system and achieve desired states.\\
 
-To begin this project, the first step was to scour the internet and look for implementations of adaptive control models in 2-link manipulators. We quickly learned that such models either don't exist, or are not publicly available. An abundance of classical PD control examples were available, and these models served as a benchmark to measure the performance of our Adaptive model.
+To begin this project, the first step was to scour the internet and look for implementations of adaptive control models in 2-link manipulators.
+We quickly learned that such models either don't exist, or are not publicly available.
+An abundance of classical PD control examples were available, and these models served as a benchmark to measure the performance of our Adaptive model.

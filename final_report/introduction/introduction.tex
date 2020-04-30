@@ -1,4 +1,24 @@
 \section{Introduction}
-%\input{introduction/benton.tex}
+\subsection*{Objective}
+The objective of our project was to take a 3 degree of freedom (DOF) robot manipulator and move an object of unknown mass from an initial state to a specified goal state, and then return the manipulator to its original position.
+Three primary methods were experimented with in this project.
+The first involved developing a method to estimate the mass matrix of the manipulator, with which a controller was designed to track the arm to the initial state, and back home when the object had been dropped in the goal state.
+The second part involved using a Kalman filter to estimate the positions of the initial state, goal state, and the current joint configurations of the manipulator.
+The last part was developing an adaptive controller to account for the unknown mass of the object to move it successfully from the initial state to the goal state.
+
+\subsubsection*{Ancillary Tasks}
+While not the focus of our project, several other components were required in order to complete the described task.
+These include the following:
+
+\begin{itemize}
+  \item Path planning algorithm (RRT*)
+  \item Trajectory planner
+  \item Collision detection
+  \item Inverse kinematics to map Cartesian space target into joint space
+\end{itemize}
+
+\noindent These items are mentioned here for completeness sake, but are not discussed in details in the report as they were not the primary objective.
+
+\input{introduction/benton.tex}
 \input{introduction/brian_intro.tex}
 \input{introduction/ethan.tex}

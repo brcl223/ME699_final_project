@@ -1,2 +1,11 @@
 \subsection*{Uncertainty in Configurations and Perception}
-At the end-effector of our robot there is a camera.  This camera will be able to perceive the obstacles and the movable object in the space.  How the camera generates this data is not a concern of this project, so all the measurements being taken are implied to be from the camera.  The camera will sense where the objects are, and thus generate a collision free path to that object via RRT*.  The error in the position of the end-effector can be a result of multiple sources: uncertainty in the camera's measurements and uncertainty in the joint configurations.  A Kalman Filter will be implemented into our robot to help take care of the noise present in the system.  As the Kalman Filter proceeds, the state becomes closer to the true state.  While the Kalman filter works, the outputs will be fed into the controls of the robot to generate the desired behavior.
+To model the uncertainty in the system, a ``camera'' was assumed to be in the world, providing the position of the initial state and the goal state.
+The readings given by the camera sensor were assumed to be noisy, having zero-mean Gaussian white noise about the positions desired.
+In order to correctly estimate the desired positions for the arm to reach, a Kalman filter was implemented.
+Since this task simply required estimating a stationary target, the filter estimated the position while converging towards the ideal target.
+
+Once the desired positions were established, the arm plotted a trajectory.
+However, the joint readings from the arm while moving were also noisy.
+These too had a zero-mean Gaussian white noise affecting the readings, with these readings being fed directly to the full-state feedback controller.
+A Kalman filter was used once again to reduce the noise from the joint readings.
+This task was significantly more challenging though since the joint positions were not stationary, so a dynamic model of the arm was produced to accurately update the Kalman filter throughout the process.

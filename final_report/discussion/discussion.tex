@@ -1,4 +1,33 @@
 \section{Conclusion}
-%\input{discussion/benton.tex}
+\input{discussion/benton.tex}
 %\input{discussion/brian.tex}
 \input{discussion/ethan.tex}
+
+\subsection*{Challenges and Obstacles}
+Many of the challenges and obstacles faced during this project related to the limitations within the Julia packages themselves for simulation.
+The most difficult problem was the lack of control during the simulation of the dynamics themselves.
+Since RigidBodyDynamics uses the ODESolver package, the dynamic steps are not controllable, and adaptive stepping is used when solving these ODEs.
+On top of that, there is no easy and convenient method to pass state to and from the simulate function, meaning all state required, both as input and output, needed to be passed in as a functor before the function was called.
+This lead to many bugs and debugging headaches.
+
+Another limitation seemed to be in the way RigidBodyDynamics handled URDF file values.
+In particular, it did not seem to honor any kind of static or dynamic friction models, meaning simulating with friction was not possible.
+
+The visualization support was also very limited.
+While MeshCat and MeshCatMechanisms boast several nice features for animations, we found these aspects of the packages to be unusable or difficult to figure out.
+We ended up settling on some of the lower level animation functions, as their high level behavior and in-browser animation controls did not work for us.
+
+One last issue was with the machine learning.
+Flux, the de-facto package for machine learning in Julia appeared to have several broken aspects to it.
+One in particular made it to where you could not train a model on a GPU if the input and output dimensions of the neural network did not match.
+Since we were using a three DOF system, our mass matrix had input size 3 and output size 6, and there was a broadcasting Cuda error thrown when trying to run the model on the GPU.
+It was still possible to run on the CPU, but trained much slower.
+
+\subsection*{Lessons Learned}
+The first lesson learned while implementing this project was the difficulty of working with high DOF systems.
+While it should be obvious that increasing DOF will increase the complexity of nearly any non-trivial system, the degree by which it scales in robotics is brutal.
+Thankfully we were able to limit the scope of our project to a three DOF system, which made implementing the code to our project much simpler.
+
+Secondly, we got first hand experience in implementing several different types of controllers, including tracking controllers.
+It was very rewarding to see our theory correctly applied to have the robot successfully navigate the obstacles in our world and follow the planned trajectories in simulation.
+Our project combined many different facets of the material covered throughout the semester, so to see them all coordinating together was quite exciting.

@@ -1,39 +1,99 @@
 \subsection*{The Kalman Filter}
-The Kalman Filter is used to mitigate the noise present in a system as the system moves.  The goal is to know what the robot is doing at the next time step, using the knowledge of the current time step.  The motion of the system is described by the following uncertainty model:
+The Kalman Filter is used to mitigate the noise present in a system as the system moves.
+The goal is to know what the robot is doing at the next time step, using the knowledge of the current time step.
+The motion of the system is described by the following uncertainty model:
+
 \begin{equation}
-    x_{t=1}=Ax_t+Bu_t+v_t,
+  x_{t+1} = \mathbf{A} x_t + \mathbf{B} u_t + v_t,
 \end{equation}
-where $v_t$ is a Gaussian noise variable pertaining to the uncertainty in the system behavior.
-\\
-The measurement made by the camera follows the uncertainty model
+
+where $\mathbf{A}\in\mathbb{R}^{n\times n}$ is the transition matrix of the dynamic system, $mathbf{B}\in\mathbb{R}^{n\times m}$ is the control matrix for the inputs, $x_{t}\in\mathbb{R}^{n}$ is the current estimate of the state, $u_{t}\in\mathbb{R}^{m}$ is the current input to the system, and $v_t$ is a Gaussian noise variable pertaining to the uncertainty in the system behavior.
+
+The measurement taken in by the filter follows the uncertainty model
 \begin{equation}
-    y_t=Cx_t+w_t,
+  y_t = \mathbf{C} x_t + w_t,
 \end{equation}
-where $w_t$ is a Gaussian noise variable describing the uncertainty in the camera's mapping of the environment.
-\\
+where $\mathbf{C}\in\mathbb{R}^{m\times n}$ is the observability matrix of the system and $w_t$ is a Gaussian noise variable describing the uncertainty in the process.
+
 The Kalman Filter proceeds with a motion update that represents the motion of the model with noise:
 \begin{equation}
-    \mu_t^{pred}=A\mu_t+Bu_t
+  \mu_t^{pred} = \mathbf{A} \mu_t + \mathbf{B} u_t
 \end{equation}
 \begin{equation}
-    \Sigma_t^{pred}=A\Sigma_tA^T+R_v
+  \Sigma_t^{pred} = \mathbf{A} \Sigma_t \mathbf{A}^\intercal + \mathbf{R}_w
 \end{equation}
-\\
-After completing the motion, the camera makes a measurement update:
+
+After completing the motion, the filter makes a measurement update:
 \begin{equation}
-    K_t=\Sigma_t^{pred}C^{T}(C\Sigma_t^{pred}C^{T}+R_w)^{-1}
+  \mathbf{K}_t = \Sigma_t^{pred} \mathbf{C}^{\intercal} (\mathbf{C} \Sigma_t^{pred} \mathbf{C}^{\intercal} + \mathbf{R}_w)^{-1}
 \end{equation}
+
 \begin{equation}
-    \mu_{t+1}=\mu_t^{pred}+K(y_t-C\mu_t^{pred})
+  \mu_{t+1} = \mu_t^{pred} + \mathbf{K}_{t} (y_t - \mathbf{C} \mu_t^{pred})
 \end{equation}
+
 \begin{equation}
-    \Sigma_{t+1}=(I-KC)\Sigma_t^{pred}
+  \Sigma_{t+1} = (I - \mathbf{K}_{t} \mathbf{C}) \Sigma_t^{pred} (I - \mathbf{K}_{t}\mathbf{C})^{\intercal} + \mathbf{K}_{t} \mathbf{R}_{w} \mathbf{K}_{t}^{\intercal}
 \end{equation}
-\subsection*{Implementation}
-Since the camera is attached to the end-effector, the measurements from the camera are made from the frame of the end-effector.  Since the system explores $\mathbb{R}^{3\times3}$, the Kalman Filter is created to handle three-dimensional space, ignoring orientations.  So, the robot $r$ and any landmark $L$ $\in\mathbb{R}^{3\times3}$.  The state is therefore a vector consisting of the robot and landmark x-y-z coordinates:
-\begin{equation}
-    x=\begin{bmatrix} x_r\\y_r\\z_r\\...\\L_{xi}\\L_{yi}\\L_{zi} \end{bmatrix}
-\end{equation}
-for i landmarks.
-\\
-Matrices A and B contain only non-zero elements on the main diagonal with entries of 1.  Matrix A has size $(3+3i)x(3+3i)$ and Matrix B is of size $(3+3i)x3$.  The matrix C describes the measurement as the distance between the landmark and the robot.  C is of size $(3i)x(3i+3)$.  The non-zero entries lie on the diagonals, with -1 entered on the corresponding robot state and 1 entered on the corresponding landmark state.
+
+\noindent where $\mathbf{R}_{w}\in\mathbb{R}^{m\times m}$ is the measurement uncertainty matrix.
+While an alternative form for the $\Sigma_{t+1}$ matrix exists, it is considered to be numerically unstable, so it was avoided in this implementation \cite{bucy-joseph-filtering}.
+
+
+\subsubsection*{Implementation}
+For the stationary targets, there is no input to affect their position, so the matrices are derived as follows:
+
+\[
+ \mathbf{A}_{s} \triangleq
+  \begin{bmatrix}
+    1 & 0 & 0\\
+    0 & 1 & 0\\
+    0 & 0 & 1
+  \end{bmatrix},\;\;
+  \mathbf{B}_{s} \triangleq 0,\;\;
+  \mathbf{C}_{s} \triangleq
+  \begin{bmatrix}
+    1 & 0 & 0\\
+    0 & 1 & 0\\
+    0 & 0 & 1
+  \end{bmatrix}
+\]
+
+\noindent Note that this corresponds to a stationary, fully observable system, where the measurements are taken corresponding to the estimated $x$, $y$ and $z$ coordinates in Cartesian space.
+
+For estimating the joint configurations, a more complicated system was required.
+The robot had three joints, each with a corresponding position and velocity.
+Thus, the following system matrices were derived:
+
+\[
+  \mathbf{A}_{j} \triangleq
+  \begin{bmatrix}
+    1 & \Delta t & 0 & 0 & 0 & 0\\
+    0 & 1 & 0 & 0 & 0 & 0\\
+    0 & 0 & 1 & \Delta t & 0 & 0\\
+    0 & 0 & 0 & 1 & 0 & 0\\
+    0 & 0 & 0 & 0 & 1 & \Delta t\\
+    0 & 0 & 0 & 0 & 0 & 1\\
+  \end{bmatrix},\;\;
+  \mathbf{B}_{j} \triangleq
+  \begin{bmatrix}
+    \frac{1}{2} \Delta t^{2} & 0 & 0\\
+    \Delta t & 0 & 0\\
+    0 & \frac{1}{2} \Delta t^{2} & 0\\
+    0 & \Delta t & 0\\
+    0 & 0 & \frac{1}{2} \Delta t^{2}\\
+    0 & 0 & \Delta t\\
+  \end{bmatrix},\;\;
+  \mathbf{C}_{j} \triangleq
+  \begin{bmatrix}
+    1 & 0 & 0 & 0 & 0 & 0\\
+    0 & 1 & 0 & 0 & 0 & 0\\
+    0 & 0 & 1 & 0 & 0 & 0\\
+    0 & 0 & 0 & 1 & 0 & 0\\
+    0 & 0 & 0 & 0 & 1 & 0\\
+    0 & 0 & 0 & 0 & 0 & 1\\
+  \end{bmatrix}
+\]
+
+\noindent where $\Delta t$ was the discrete time step used between each sample.
+Again, the entire system was fully observable, and the inputs were the joint accelerations, calculated from each previous torque input commanded to the system.
