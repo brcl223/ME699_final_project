@@ -47,21 +47,6 @@ function (pd::PDController)(τ::AbstractVector, t, state::MechanismState)
 end
 
 
-# Gravity Compensated PD Controller
-mutable struct PDGCController{T<:Tuple}
-    qd::AbstractVector
-    τ::AbstractVector
-    nn::Chain{T}
-end
-
-PDGCController(dim::Integer, qd::AbstractVector) = PDGCController(qd, zeros(dim), load_nn("./models/gravity_nn"))
-PDGCController(dim::Integer) = PDGCController(dim, gen_rand_pi(dim))
-
-function (pd::PDGCController)(τ::AbstractVector, t, state::MechanismState)
-    qcur = configuration(state)
-    τ .= -30 .* velocity(state) - 100 * (qcur - pd.qd) + pd.nn(qcur)
-end
-
 mutable struct PDTracker{T}
     q::AbstractVector{<:AbstractVector{T}}
     q̇::AbstractVector{<:AbstractVector{T}}
